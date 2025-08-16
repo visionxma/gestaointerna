@@ -9,6 +9,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/auth-context"
 import { fazerLogout } from "@/lib/auth"
+import { UserProfileEdit } from "@/components/dashboard/user-profile-edit"
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -81,7 +82,12 @@ export function Sidebar() {
           </nav>
 
           <div className="px-4 py-4 border-t border-border">
-            <div className="mb-3 text-xs text-muted-foreground">Logado como: {user?.email}</div>
+            <div className="mb-3 flex items-center justify-between">
+              <div className="text-xs text-muted-foreground">
+                Logado como: {user?.displayName || user?.email}
+              </div>
+              <UserProfileEdit />
+            </div>
             <Button
               variant="outline"
               size="sm"
