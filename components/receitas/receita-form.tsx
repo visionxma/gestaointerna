@@ -1,0 +1,189 @@
+"use client"
+
+import type React from "react"
+
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { adicionarReceita } from "@/lib/database"
+import { obterClientes } from "@/lib/database"
+import { useToast } from "@/hooks/use-toast"
+import type { Cliente } from "@/lib/types"
+
+interface ReceitaFormProps {
+  onReceitaAdicionada: () => void
+}
+
+const categorias = [
+  "Desenvolvimento Web",
+  "Desenvolvimento Mobile",
+  "Consultoria",
+  "Manutenção",
+  "Design",
+  "SEO/Marketing",
+  "Hospedagem",
+  "Outros",
+]
+
+export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
+  const { toast } = useToast()
+  const [loading, setLoading] = useState(false)
+  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [formData, setFormData] = useState({
+    descricao: "",
+    valor: "",
+    clienteId: "none", // Changed from empty string to "none" to avoid Select error
+    categoria: "Desenvolvimento Web",
+    data: new Date().toISOString().split("T")[0],
+  })
+
+  useEffect(() => {
+    const carregarClientes = async () => {
+      const clientesData = await obterClientes()
+      setClientes(clientesData)
+    }
+    carregarClientes()
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      const receitaData: any = {
+        descricao: formData.descricao,
+        valor: Number.parseFloat(formData.valor),
+        categoria: formData.categoria,
+        data: new Date(formData.data),
+      }
+
+      // Only add clienteId if a client is selected (not "none")
+      if (formData.clienteId !== "none") {
+        receitaData.clienteId = formData.clienteId
+      }
+
+      await adicionarReceita(receitaData)
+
+      toast({
+        title: "Receita adicionada",
+        description: "Receita foi adicionada com sucesso!",
+      })
+
+      setFormData({
+        descricao: "",
+        valor: "",
+        clienteId: "none", // Reset to "none" instead of empty string
+        categoria: "Desenvolvimento Web",
+        data: new Date().toISOString().split("T")[0],
+      })
+
+      onReceitaAdicionada()
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao adicionar receita. Tente novamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    })
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Adicionar Nova Receita</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="descricao">Descrição *</Label>
+            <Textarea
+              id="descricao"
+              name="descricao"
+              value={formData.descricao}
+              onChange={handleChange}
+              required
+              placeholder="Descreva a receita (ex: Desenvolvimento do site institucional)"
+              rows={2}
+            />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="valor">Valor (R$) *</Label>
+              <Input
+                id="valor"
+                name="valor"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.valor}
+                onChange={handleChange}
+                required
+                placeholder="0,00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="categoria">Categoria *</Label>
+              <Select
+                value={formData.categoria}
+                onValueChange={(value) => setFormData({ ...formData, categoria: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categorias.map((categoria) => (
+                    <SelectItem key={categoria} value={categoria}>
+                      {categoria}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="data">Data *</Label>
+              <Input id="data" name="data" type="date" value={formData.data} onChange={handleChange} required />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="clienteId">Cliente (Opcional)</Label>
+            <Select
+              value={formData.clienteId}
+              onValueChange={(value) => setFormData({ ...formData, clienteId: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um cliente (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhum cliente</SelectItem>
+                {clientes.map((cliente) => (
+                  <SelectItem key={cliente.id} value={cliente.id}>
+                    {cliente.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? "Adicionando..." : "Adicionar Receita"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
