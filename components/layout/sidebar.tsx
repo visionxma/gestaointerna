@@ -49,7 +49,7 @@ export function Sidebar() {
         <div className="flex flex-col h-full">
           <div className="flex flex-col items-center justify-center px-4 py-6 border-b border-border">
             <div className="w-32 h-12 relative mb-2">
-              <Image src="/images/visionx-logo.png" alt="VisionX Logo" fill className="object-contain" priority />
+              <Image src="./images/visionx-logo.png" alt="VisionX Logo" fill className="object-contain" priority />
             </div>
             <div className="text-center">
               <h1 className="text-sm font-semibold text-foreground">Sistema de Gestão</h1>

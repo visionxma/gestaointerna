@@ -89,7 +89,7 @@ export function RegisterForm() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <Image src="/images/visionx-logo.png" alt="VisionX Logo" width={200} height={60} className="h-12 w-auto" />
+            <Image src="./images/visionx-logo.png" alt="VisionX Logo" width={200} height={60} className="h-12 w-auto" />
           </div>
           <CardTitle className="text-2xl">Cadastro</CardTitle>
           <CardDescription>Crie sua conta no Sistema de Gestão Interno VisionX</CardDescription>
