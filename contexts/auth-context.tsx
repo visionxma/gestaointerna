@@ -29,12 +29,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    console.log("[Auth Context] Configurando observador de autenticação")
     const unsubscribe = observarEstadoAuth((user) => {
+      console.log("[Auth Context] Estado de autenticação alterado:", user ? "Logado" : "Deslogado")
       setUser(user)
       setLoading(false)
     })
 
-    return unsubscribe
+    return () => {
+      console.log("[Auth Context] Removendo observador de autenticação")
+      unsubscribe()
+    }
   }, [])
 
   return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>

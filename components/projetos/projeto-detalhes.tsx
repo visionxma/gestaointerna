@@ -94,6 +94,7 @@ export function ProjetoDetalhes({ projeto, cliente, onProjetoAtualizado }: Proje
   const handleSalvar = async () => {
     setLoading(true)
     try {
+      console.log("[Projeto Detalhes] Atualizando projeto:", projeto.id, formData)
       await atualizarProjeto(projeto.id, {
         status: formData.status,
         progresso: formData.progresso,
@@ -101,6 +102,7 @@ export function ProjetoDetalhes({ projeto, cliente, onProjetoAtualizado }: Proje
         dataConclusao: formData.status === "concluido" ? new Date() : undefined,
       })
 
+      console.log("[Projeto Detalhes] Projeto atualizado com sucesso")
       toast({
         title: "Projeto atualizado",
         description: "As alterações foram salvas com sucesso!",
@@ -109,6 +111,7 @@ export function ProjetoDetalhes({ projeto, cliente, onProjetoAtualizado }: Proje
       setEditando(false)
       onProjetoAtualizado()
     } catch (error) {
+      console.error("[Projeto Detalhes] Erro ao atualizar projeto:", error)
       toast({
         title: "Erro",
         description: "Erro ao atualizar projeto. Tente novamente.",

@@ -74,8 +74,10 @@ export function ProjetoForm({ onProjetoAdicionado, clientes }: ProjetoFormProps)
         dataRegistro: new Date(),
       }
 
+      console.log("[Projeto Form] Criando projeto:", projetoData)
       await adicionarProjeto(projetoData)
 
+      console.log("[Projeto Form] Projeto criado com sucesso")
       toast({
         title: "Projeto criado",
         description: "Projeto foi criado com sucesso!",
@@ -96,6 +98,7 @@ export function ProjetoForm({ onProjetoAdicionado, clientes }: ProjetoFormProps)
 
       onProjetoAdicionado()
     } catch (error) {
+      console.error("[Projeto Form] Erro ao criar projeto:", error)
       toast({
         title: "Erro",
         description: "Erro ao criar projeto. Tente novamente.",

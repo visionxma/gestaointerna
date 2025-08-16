@@ -66,8 +66,10 @@ export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
         receitaData.clienteId = formData.clienteId
       }
 
+      console.log("[Receita Form] Adicionando receita:", receitaData)
       await adicionarReceita(receitaData)
 
+      console.log("[Receita Form] Receita adicionada com sucesso")
       toast({
         title: "Receita adicionada",
         description: "Receita foi adicionada com sucesso!",
@@ -83,6 +85,7 @@ export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
 
       onReceitaAdicionada()
     } catch (error) {
+      console.error("[Receita Form] Erro ao adicionar receita:", error)
       toast({
         title: "Erro",
         description: "Erro ao adicionar receita. Tente novamente.",

@@ -31,11 +31,13 @@ export function ClienteForm({ onClienteAdicionado }: ClienteFormProps) {
     setLoading(true)
 
     try {
+      console.log("[Cliente Form] Adicionando cliente:", formData)
       await adicionarCliente({
         ...formData,
         dataRegistro: new Date(),
       })
 
+      console.log("[Cliente Form] Cliente adicionado com sucesso")
       toast({
         title: "Cliente adicionado",
         description: "Cliente foi adicionado com sucesso!",
@@ -51,6 +53,7 @@ export function ClienteForm({ onClienteAdicionado }: ClienteFormProps) {
 
       onClienteAdicionado()
     } catch (error) {
+      console.error("[Cliente Form] Erro ao adicionar cliente:", error)
       toast({
         title: "Erro",
         description: "Erro ao adicionar cliente. Tente novamente.",

@@ -45,6 +45,7 @@ export function DespesaForm({ onDespesaAdicionada }: DespesaFormProps) {
     setLoading(true)
 
     try {
+      console.log("[Despesa Form] Adicionando despesa:", formData)
       await adicionarDespesa({
         descricao: formData.descricao,
         valor: Number.parseFloat(formData.valor),
@@ -52,6 +53,7 @@ export function DespesaForm({ onDespesaAdicionada }: DespesaFormProps) {
         data: new Date(formData.data),
       })
 
+      console.log("[Despesa Form] Despesa adicionada com sucesso")
       toast({
         title: "Despesa adicionada",
         description: "Despesa foi adicionada com sucesso!",
@@ -66,6 +68,7 @@ export function DespesaForm({ onDespesaAdicionada }: DespesaFormProps) {
 
       onDespesaAdicionada()
     } catch (error) {
+      console.error("[Despesa Form] Erro ao adicionar despesa:", error)
       toast({
         title: "Erro",
         description: "Erro ao adicionar despesa. Tente novamente.",

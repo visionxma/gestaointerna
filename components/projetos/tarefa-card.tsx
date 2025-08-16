@@ -56,11 +56,13 @@ export function TarefaCard({ tarefa, onTarefaAtualizada }: TarefaCardProps) {
   const handleSalvarStatus = async () => {
     setLoading(true)
     try {
+      console.log("[Tarefa Card] Atualizando status da tarefa:", tarefa.id, novoStatus)
       await atualizarTarefa(tarefa.id, {
         status: novoStatus,
         dataConclusao: novoStatus === "concluida" ? new Date() : undefined,
       })
 
+      console.log("[Tarefa Card] Status atualizado com sucesso")
       toast({
         title: "Status atualizado",
         description: "O status da tarefa foi atualizado com sucesso!",
@@ -69,6 +71,7 @@ export function TarefaCard({ tarefa, onTarefaAtualizada }: TarefaCardProps) {
       setEditandoStatus(false)
       onTarefaAtualizada()
     } catch (error) {
+      console.error("[Tarefa Card] Erro ao atualizar status:", error)
       toast({
         title: "Erro",
         description: "Erro ao atualizar status. Tente novamente.",

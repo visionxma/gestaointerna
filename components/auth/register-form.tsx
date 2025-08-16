@@ -59,9 +59,11 @@ export function RegisterForm() {
     }
 
     try {
+      console.log("[Register Form] Tentando criar conta...")
       const { user, error: registerError } = await criarConta(email, password, nome, foto)
 
       if (registerError) {
+        console.error("[Register Form] Erro no registro:", registerError)
         if (registerError.includes("auth/email-already-in-use")) {
           setError("Este email já está cadastrado. Tente fazer login ou use outro email.")
         } else if (registerError.includes("auth/weak-password")) {
@@ -72,12 +74,14 @@ export function RegisterForm() {
           setError("Erro ao criar conta: " + registerError)
         }
       } else if (user) {
+        console.log("[Register Form] Conta criada com sucesso, redirecionando...")
         router.push("/")
       } else {
+        console.error("[Register Form] Erro inesperado: usuário não retornado")
         setError("Erro inesperado ao criar conta")
       }
     } catch (error) {
-      console.error("[v0] Erro no cadastro:", error)
+      console.error("[Register Form] Erro no cadastro:", error)
       setError("Erro inesperado ao criar conta. Tente novamente.")
     } finally {
       setLoading(false)

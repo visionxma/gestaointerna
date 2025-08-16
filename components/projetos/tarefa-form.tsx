@@ -65,8 +65,10 @@ export function TarefaForm({ projetoId, onTarefaAdicionada, onCancelar }: Tarefa
         dataRegistro: new Date(),
       }
 
+      console.log("[Tarefa Form] Criando tarefa:", tarefaData)
       await adicionarTarefa(tarefaData)
 
+      console.log("[Tarefa Form] Tarefa criada com sucesso")
       toast({
         title: "Tarefa criada",
         description: "Tarefa foi criada com sucesso!",
@@ -74,6 +76,7 @@ export function TarefaForm({ projetoId, onTarefaAdicionada, onCancelar }: Tarefa
 
       onTarefaAdicionada()
     } catch (error) {
+      console.error("[Tarefa Form] Erro ao criar tarefa:", error)
       toast({
         title: "Erro",
         description: "Erro ao criar tarefa. Tente novamente.",

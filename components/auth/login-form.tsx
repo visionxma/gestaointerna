@@ -24,12 +24,18 @@ export function LoginForm() {
     setLoading(true)
     setError("")
 
+    console.log("[Login Form] Tentando fazer login...")
     const { user, error: loginError } = await fazerLogin(email, password)
 
     if (loginError) {
+      console.error("[Login Form] Erro no login:", loginError)
       setError("Email ou senha incorretos")
     } else if (user) {
+      console.log("[Login Form] Login realizado com sucesso, redirecionando...")
       router.push("/")
+    } else {
+      console.error("[Login Form] Erro inesperado: usuário não retornado")
+      setError("Erro inesperado no login")
     }
 
     setLoading(false)
