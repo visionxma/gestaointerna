@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar, User, DollarSign, Clock, Edit, Save, X } from "lucide-react"
 import { atualizarProjeto } from "@/lib/database-projetos"
 import { useToast } from "@/hooks/use-toast"
+import { CheckCircle } from "lucide-react"
 import type { Projeto, Cliente, StatusProjeto, PrioridadeProjeto } from "@/lib/types"
 
 interface ProjetoDetalhesProps {
@@ -131,6 +132,35 @@ export function ProjetoDetalhes({ projeto, cliente, onProjetoAtualizado }: Proje
     setEditando(false)
   }
 
+  const handleConcluirProjeto = async () => {
+    setLoading(true)
+    try {
+      console.log("[Projeto Detalhes] Marcando projeto como concluído:", projeto.id)
+      await atualizarProjeto(projeto.id, {
+        status: "concluido",
+        progresso: 100,
+        dataConclusao: new Date(),
+      })
+
+      console.log("[Projeto Detalhes] Projeto marcado como concluído")
+      toast({
+        title: "Projeto concluído",
+        description: "O projeto foi marcado como concluído com sucesso!",
+      })
+
+      onProjetoAtualizado()
+    } catch (error) {
+      console.error("[Projeto Detalhes] Erro ao concluir projeto:", error)
+      toast({
+        title: "Erro",
+        description: "Erro ao marcar projeto como concluído. Tente novamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -143,10 +173,23 @@ export function ProjetoDetalhes({ projeto, cliente, onProjetoAtualizado }: Proje
           </div>
           <div className="flex gap-2">
             {!editando ? (
-              <Button onClick={() => setEditando(true)} variant="outline" size="sm">
-                <Edit className="h-4 w-4 mr-2" />
-                Editar
-              </Button>
+              <div className="flex gap-2">
+                {projeto.status !== "concluido" && (
+                  <Button 
+                    onClick={handleConcluirProjeto} 
+                    disabled={loading}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    size="sm"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    {loading ? "Concluindo..." : "Marcar como Concluído"}
+                  </Button>
+                )}
+                <Button onClick={() => setEditando(true)} variant="outline" size="sm">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar
+                </Button>
+              </div>
             ) : (
               <div className="flex gap-2">
                 <Button onClick={handleSalvar} disabled={loading} size="sm">
