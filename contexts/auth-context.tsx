@@ -30,17 +30,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     console.log("[Auth Context] Configurando observador de autenticação")
+    
     const unsubscribe = observarEstadoAuth((user) => {
-      console.log("[Auth Context] Estado de autenticação alterado:", user ? "Logado" : "Deslogado")
+      console.log("[Auth Context] Estado de autenticação alterado:", user ? `Logado como ${user.email}` : "Deslogado")
       setUser(user)
       setLoading(false)
     })
 
+    // Timeout de segurança para evitar loading infinito
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.log("[Auth Context] Timeout de loading atingido, definindo loading como false")
+        setLoading(false)
+      }
+    }, 10000) // 10 segundos
+
     return () => {
       console.log("[Auth Context] Removendo observador de autenticação")
       unsubscribe()
+      clearTimeout(timeoutId)
     }
-  }, [])
+  }, [loading])
 
-  return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ user, loading }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }

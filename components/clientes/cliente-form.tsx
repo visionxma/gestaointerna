@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { adicionarCliente } from "@/lib/database"
 import { useToast } from "@/hooks/use-toast"
+import { AlertCircle } from "lucide-react"
 
 interface ClienteFormProps {
   onClienteAdicionado: () => void
@@ -18,6 +20,7 @@ interface ClienteFormProps {
 export function ClienteForm({ onClienteAdicionado }: ClienteFormProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
   const [formData, setFormData] = useState({
     nome: "",
     email: "",
@@ -29,6 +32,40 @@ export function ClienteForm({ onClienteAdicionado }: ClienteFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError("")
+
+    // Validações no frontend
+    if (!formData.nome.trim()) {
+      setError("Nome é obrigatório")
+      setLoading(false)
+      return
+    }
+
+    if (!formData.email.trim()) {
+      setError("Email é obrigatório")
+      setLoading(false)
+      return
+    }
+
+    if (!formData.telefone.trim()) {
+      setError("Telefone é obrigatório")
+      setLoading(false)
+      return
+    }
+
+    if (!formData.servico.trim()) {
+      setError("Serviço é obrigatório")
+      setLoading(false)
+      return
+    }
+
+    // Validar formato do email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      setError("Formato de email inválido")
+      setLoading(false)
+      return
+    }
 
     try {
       console.log("[Cliente Form] Adicionando cliente:", formData)
@@ -52,11 +89,13 @@ export function ClienteForm({ onClienteAdicionado }: ClienteFormProps) {
       })
 
       onClienteAdicionado()
-    } catch (error) {
+    } catch (error: any) {
       console.error("[Cliente Form] Erro ao adicionar cliente:", error)
+      const errorMessage = error.message || "Erro ao adicionar cliente. Tente novamente."
+      setError(errorMessage)
       toast({
         title: "Erro",
-        description: "Erro ao adicionar cliente. Tente novamente.",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -69,6 +108,8 @@ export function ClienteForm({ onClienteAdicionado }: ClienteFormProps) {
       ...formData,
       [e.target.name]: e.target.value,
     })
+    // Limpar erro quando o usuário começar a digitar
+    if (error) setError("")
   }
 
   return (
@@ -78,6 +119,13 @@ export function ClienteForm({ onClienteAdicionado }: ClienteFormProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="nome">Nome *</Label>
@@ -88,6 +136,8 @@ export function ClienteForm({ onClienteAdicionado }: ClienteFormProps) {
                 onChange={handleChange}
                 required
                 placeholder="Nome do cliente"
+                disabled={loading}
+                className={error && !formData.nome.trim() ? "border-destructive" : ""}
               />
             </div>
             <div className="space-y-2">
@@ -100,6 +150,8 @@ export function ClienteForm({ onClienteAdicionado }: ClienteFormProps) {
                 onChange={handleChange}
                 required
                 placeholder="email@exemplo.com"
+                disabled={loading}
+                className={error && !formData.email.trim() ? "border-destructive" : ""}
               />
             </div>
           </div>
@@ -114,6 +166,8 @@ export function ClienteForm({ onClienteAdicionado }: ClienteFormProps) {
                 onChange={handleChange}
                 required
                 placeholder="(11) 99999-9999"
+                disabled={loading}
+                className={error && !formData.telefone.trim() ? "border-destructive" : ""}
               />
             </div>
             <div className="space-y-2">
@@ -125,6 +179,7 @@ export function ClienteForm({ onClienteAdicionado }: ClienteFormProps) {
                 value={formData.linkSite}
                 onChange={handleChange}
                 placeholder="https://exemplo.com"
+                disabled={loading}
               />
             </div>
           </div>
@@ -139,6 +194,8 @@ export function ClienteForm({ onClienteAdicionado }: ClienteFormProps) {
               required
               placeholder="Descreva o serviço prestado para este cliente"
               rows={3}
+              disabled={loading}
+              className={error && !formData.servico.trim() ? "border-destructive" : ""}
             />
           </div>
 
