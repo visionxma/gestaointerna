@@ -80,12 +80,7 @@ export function LoginForm() {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Entrando..." : "Entrar"}
             </Button>
-
             <div className="text-center text-sm text-muted-foreground">
-              Não tem uma conta?{" "}
-              <Button variant="link" className="p-0 h-auto" onClick={() => router.push("/cadastro")}>
-                Cadastre-se
-              </Button>
             </div>
           </form>
         </CardContent>
