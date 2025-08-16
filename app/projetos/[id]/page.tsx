@@ -9,8 +9,24 @@ import { TarefasList } from "@/components/projetos/tarefas-list"
 import { AtividadesList } from "@/components/projetos/atividades-list"
 import { obterProjetoPorId, obterTarefasPorProjeto, obterAtividadesPorProjeto } from "@/lib/database-projetos"
 import { obterClientes } from "@/lib/database"
+import { db } from "@/lib/firebase"
+import { collection, getDocs } from "firebase/firestore"
 import type { Projeto, Tarefa, AtividadeProjeto, Cliente } from "@/lib/types"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+export async function generateStaticParams() {
+  try {
+    const projetosRef = collection(db, "projetos")
+    const snapshot = await getDocs(projetosRef)
+    
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+    }))
+  } catch (error) {
+    console.error("Erro ao gerar parâmetros estáticos:", error)
+    return []
+  }
+}
 
 export default function ProjetoDetalhePage() {
   const params = useParams()
