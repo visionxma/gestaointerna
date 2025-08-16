@@ -12,6 +12,12 @@ import { obterClientes } from "@/lib/database"
 import type { Projeto, Tarefa, AtividadeProjeto, Cliente } from "@/lib/types"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+export async function generateStaticParams() {
+  // For static export, we'll return an empty array since project data
+  // requires authentication and isn't available at build time
+  return []
+}
+
 export default function ProjetoDetalhePage() {
   const params = useParams()
   const projetoId = params.id as string
