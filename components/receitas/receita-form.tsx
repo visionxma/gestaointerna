@@ -9,11 +9,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { adicionarReceita } from "@/lib/database"
 import { obterClientes } from "@/lib/database"
 import { useToast } from "@/hooks/use-toast"
-import { AlertCircle } from "lucide-react"
 import type { Cliente } from "@/lib/types"
 
 interface ReceitaFormProps {
@@ -34,24 +32,19 @@ const categorias = [
 export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [formData, setFormData] = useState({
     descricao: "",
     valor: "",
-    clienteId: "none",
+    clienteId: "none", // Changed from empty string to "none" to avoid Select error
     categoria: "Desenvolvimento Web",
     data: new Date().toISOString().split("T")[0],
   })
 
   useEffect(() => {
     const carregarClientes = async () => {
-      try {
-        const clientesData = await obterClientes()
-        setClientes(clientesData)
-      } catch (error) {
-        console.error("Erro ao carregar clientes:", error)
-      }
+      const clientesData = await obterClientes()
+      setClientes(clientesData)
     }
     carregarClientes()
   }, [])
@@ -59,37 +52,11 @@ export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setError("")
-
-    // Validações no frontend
-    if (!formData.descricao.trim()) {
-      setError("Descrição é obrigatória")
-      setLoading(false)
-      return
-    }
-
-    if (!formData.valor || parseFloat(formData.valor) <= 0) {
-      setError("Valor deve ser maior que zero")
-      setLoading(false)
-      return
-    }
-
-    if (!formData.categoria) {
-      setError("Categoria é obrigatória")
-      setLoading(false)
-      return
-    }
-
-    if (!formData.data) {
-      setError("Data é obrigatória")
-      setLoading(false)
-      return
-    }
 
     try {
       const receitaData: any = {
         descricao: formData.descricao,
-        valor: parseFloat(formData.valor),
+        valor: Number.parseFloat(formData.valor),
         categoria: formData.categoria,
         data: new Date(formData.data),
       }
@@ -99,10 +66,8 @@ export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
         receitaData.clienteId = formData.clienteId
       }
 
-      console.log("[Receita Form] Adicionando receita:", receitaData)
       await adicionarReceita(receitaData)
 
-      console.log("[Receita Form] Receita adicionada com sucesso")
       toast({
         title: "Receita adicionada",
         description: "Receita foi adicionada com sucesso!",
@@ -111,19 +76,16 @@ export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
       setFormData({
         descricao: "",
         valor: "",
-        clienteId: "none",
+        clienteId: "none", // Reset to "none" instead of empty string
         categoria: "Desenvolvimento Web",
         data: new Date().toISOString().split("T")[0],
       })
 
       onReceitaAdicionada()
-    } catch (error: any) {
-      console.error("[Receita Form] Erro ao adicionar receita:", error)
-      const errorMessage = error.message || "Erro ao adicionar receita. Tente novamente."
-      setError(errorMessage)
+    } catch (error) {
       toast({
         title: "Erro",
-        description: errorMessage,
+        description: "Erro ao adicionar receita. Tente novamente.",
         variant: "destructive",
       })
     } finally {
@@ -136,8 +98,6 @@ export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
       ...formData,
       [e.target.name]: e.target.value,
     })
-    // Limpar erro quando o usuário começar a digitar
-    if (error) setError("")
   }
 
   return (
@@ -147,13 +107,6 @@ export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
           <div className="space-y-2">
             <Label htmlFor="descricao">Descrição *</Label>
             <Textarea
@@ -164,8 +117,6 @@ export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
               required
               placeholder="Descreva a receita (ex: Desenvolvimento do site institucional)"
               rows={2}
-              disabled={loading}
-              className={error && !formData.descricao.trim() ? "border-destructive" : ""}
             />
           </div>
 
@@ -182,19 +133,13 @@ export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
                 onChange={handleChange}
                 required
                 placeholder="0,00"
-                disabled={loading}
-                className={error && (!formData.valor || parseFloat(formData.valor) <= 0) ? "border-destructive" : ""}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="categoria">Categoria *</Label>
               <Select
                 value={formData.categoria}
-                onValueChange={(value) => {
-                  setFormData({ ...formData, categoria: value })
-                  if (error) setError("")
-                }}
-                disabled={loading}
+                onValueChange={(value) => setFormData({ ...formData, categoria: value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma categoria" />
@@ -210,16 +155,7 @@ export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="data">Data *</Label>
-              <Input 
-                id="data" 
-                name="data" 
-                type="date" 
-                value={formData.data} 
-                onChange={handleChange} 
-                required 
-                disabled={loading}
-                className={error && !formData.data ? "border-destructive" : ""}
-              />
+              <Input id="data" name="data" type="date" value={formData.data} onChange={handleChange} required />
             </div>
           </div>
 
@@ -227,11 +163,7 @@ export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
             <Label htmlFor="clienteId">Cliente (Opcional)</Label>
             <Select
               value={formData.clienteId}
-              onValueChange={(value) => {
-                setFormData({ ...formData, clienteId: value })
-                if (error) setError("")
-              }}
-              disabled={loading}
+              onValueChange={(value) => setFormData({ ...formData, clienteId: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um cliente (opcional)" />

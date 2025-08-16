@@ -9,10 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { adicionarDespesa } from "@/lib/database"
 import { useToast } from "@/hooks/use-toast"
-import { AlertCircle } from "lucide-react"
 
 interface DespesaFormProps {
   onDespesaAdicionada: () => void
@@ -35,54 +33,25 @@ const categorias = [
 export function DespesaForm({ onDespesaAdicionada }: DespesaFormProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
   const [formData, setFormData] = useState({
     descricao: "",
     valor: "",
-    categoria: "Hospedagem/Servidor",
+    categoria: "Hospedagem/Servidor", // Updated default value to be a non-empty string
     data: new Date().toISOString().split("T")[0],
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setError("")
-
-    // Validações no frontend
-    if (!formData.descricao.trim()) {
-      setError("Descrição é obrigatória")
-      setLoading(false)
-      return
-    }
-
-    if (!formData.valor || parseFloat(formData.valor) <= 0) {
-      setError("Valor deve ser maior que zero")
-      setLoading(false)
-      return
-    }
-
-    if (!formData.categoria) {
-      setError("Categoria é obrigatória")
-      setLoading(false)
-      return
-    }
-
-    if (!formData.data) {
-      setError("Data é obrigatória")
-      setLoading(false)
-      return
-    }
 
     try {
-      console.log("[Despesa Form] Adicionando despesa:", formData)
       await adicionarDespesa({
         descricao: formData.descricao,
-        valor: parseFloat(formData.valor),
+        valor: Number.parseFloat(formData.valor),
         categoria: formData.categoria,
         data: new Date(formData.data),
       })
 
-      console.log("[Despesa Form] Despesa adicionada com sucesso")
       toast({
         title: "Despesa adicionada",
         description: "Despesa foi adicionada com sucesso!",
@@ -91,18 +60,15 @@ export function DespesaForm({ onDespesaAdicionada }: DespesaFormProps) {
       setFormData({
         descricao: "",
         valor: "",
-        categoria: "Hospedagem/Servidor",
+        categoria: "Hospedagem/Servidor", // Updated default value to be a non-empty string
         data: new Date().toISOString().split("T")[0],
       })
 
       onDespesaAdicionada()
-    } catch (error: any) {
-      console.error("[Despesa Form] Erro ao adicionar despesa:", error)
-      const errorMessage = error.message || "Erro ao adicionar despesa. Tente novamente."
-      setError(errorMessage)
+    } catch (error) {
       toast({
         title: "Erro",
-        description: errorMessage,
+        description: "Erro ao adicionar despesa. Tente novamente.",
         variant: "destructive",
       })
     } finally {
@@ -115,8 +81,6 @@ export function DespesaForm({ onDespesaAdicionada }: DespesaFormProps) {
       ...formData,
       [e.target.name]: e.target.value,
     })
-    // Limpar erro quando o usuário começar a digitar
-    if (error) setError("")
   }
 
   return (
@@ -126,13 +90,6 @@ export function DespesaForm({ onDespesaAdicionada }: DespesaFormProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
           <div className="space-y-2">
             <Label htmlFor="descricao">Descrição *</Label>
             <Textarea
@@ -143,8 +100,6 @@ export function DespesaForm({ onDespesaAdicionada }: DespesaFormProps) {
               required
               placeholder="Descreva a despesa (ex: Hospedagem mensal do servidor)"
               rows={2}
-              disabled={loading}
-              className={error && !formData.descricao.trim() ? "border-destructive" : ""}
             />
           </div>
 
@@ -161,19 +116,13 @@ export function DespesaForm({ onDespesaAdicionada }: DespesaFormProps) {
                 onChange={handleChange}
                 required
                 placeholder="0,00"
-                disabled={loading}
-                className={error && (!formData.valor || parseFloat(formData.valor) <= 0) ? "border-destructive" : ""}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="categoria">Categoria *</Label>
               <Select
                 value={formData.categoria}
-                onValueChange={(value) => {
-                  setFormData({ ...formData, categoria: value })
-                  if (error) setError("")
-                }}
-                disabled={loading}
+                onValueChange={(value) => setFormData({ ...formData, categoria: value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma categoria" />
@@ -189,16 +138,7 @@ export function DespesaForm({ onDespesaAdicionada }: DespesaFormProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="data">Data *</Label>
-              <Input 
-                id="data" 
-                name="data" 
-                type="date" 
-                value={formData.data} 
-                onChange={handleChange} 
-                required 
-                disabled={loading}
-                className={error && !formData.data ? "border-destructive" : ""}
-              />
+              <Input id="data" name="data" type="date" value={formData.data} onChange={handleChange} required />
             </div>
           </div>
 

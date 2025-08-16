@@ -11,7 +11,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { criarConta } from "@/lib/auth"
 import Image from "next/image"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Eye, EyeOff, AlertCircle, Upload } from "lucide-react"
 
 export function RegisterForm() {
   const [email, setEmail] = useState("")
@@ -22,28 +21,12 @@ export function RegisterForm() {
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const router = useRouter()
 
   const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // Validar tamanho do arquivo (máximo 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setError("A foto deve ter no máximo 5MB")
-        return
-      }
-
-      // Validar tipo do arquivo
-      if (!file.type.startsWith('image/')) {
-        setError("Apenas arquivos de imagem são permitidos")
-        return
-      }
-
       setFoto(file)
-      setError("") // Limpar erro se a validação passou
-      
       const reader = new FileReader()
       reader.onloadend = () => {
         setFotoPreview(reader.result as string)
@@ -57,29 +40,8 @@ export function RegisterForm() {
     setLoading(true)
     setError("")
 
-    // Validações no frontend
-    if (!nome.trim()) {
-      setError("Nome é obrigatório")
-      setLoading(false)
-      return
-    }
-
-    if (!email.trim()) {
-      setError("Email é obrigatório")
-      setLoading(false)
-      return
-    }
-
-    // Validar formato do email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      setError("Formato de email inválido")
-      setLoading(false)
-      return
-    }
-
-    if (!password) {
-      setError("Senha é obrigatória")
+    if (password !== confirmPassword) {
+      setError("As senhas não coincidem")
       setLoading(false)
       return
     }
@@ -90,29 +52,33 @@ export function RegisterForm() {
       return
     }
 
-    if (password !== confirmPassword) {
-      setError("As senhas não coincidem")
+    if (!nome.trim()) {
+      setError("Nome é obrigatório")
       setLoading(false)
       return
     }
 
     try {
-      console.log("[Register Form] Tentando criar conta...")
       const { user, error: registerError } = await criarConta(email, password, nome, foto)
 
       if (registerError) {
-        console.error("[Register Form] Erro no registro:", registerError)
-        setError(registerError)
+        if (registerError.includes("auth/email-already-in-use")) {
+          setError("Este email já está cadastrado. Tente fazer login ou use outro email.")
+        } else if (registerError.includes("auth/weak-password")) {
+          setError("A senha é muito fraca. Use pelo menos 6 caracteres.")
+        } else if (registerError.includes("auth/invalid-email")) {
+          setError("Email inválido. Verifique o formato do email.")
+        } else {
+          setError("Erro ao criar conta: " + registerError)
+        }
       } else if (user) {
-        console.log("[Register Form] Conta criada com sucesso, redirecionando...")
         router.push("/")
       } else {
-        console.error("[Register Form] Erro inesperado: usuário não retornado")
-        setError("Erro inesperado ao criar conta. Tente novamente.")
+        setError("Erro inesperado ao criar conta")
       }
     } catch (error) {
-      console.error("[Register Form] Erro inesperado:", error)
-      setError("Erro inesperado. Verifique sua conexão e tente novamente.")
+      console.error("[v0] Erro no cadastro:", error)
+      setError("Erro inesperado ao criar conta. Tente novamente.")
     } finally {
       setLoading(false)
     }
@@ -123,14 +89,7 @@ export function RegisterForm() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <Image 
-              src="/images/visionx-logo.png" 
-              alt="VisionX Logo" 
-              width={200} 
-              height={60} 
-              className="h-12 w-auto"
-              priority
-            />
+            <Image src="./images/visionx-logo.png" alt="VisionX Logo" width={200} height={60} className="h-12 w-auto" />
           </div>
           <CardTitle className="text-2xl">Cadastro</CardTitle>
           <CardDescription>Crie sua conta no Sistema de Gestão Interno VisionX</CardDescription>
@@ -139,7 +98,6 @@ export function RegisterForm() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
@@ -153,8 +111,6 @@ export function RegisterForm() {
                 onChange={(e) => setNome(e.target.value)}
                 required
                 placeholder="Seu nome completo"
-                disabled={loading}
-                className={error && !nome.trim() ? "border-destructive" : ""}
               />
             </div>
 
@@ -163,22 +119,10 @@ export function RegisterForm() {
               <div className="flex items-center gap-4">
                 <Avatar className="h-16 w-16">
                   <AvatarImage src={fotoPreview || undefined} />
-                  <AvatarFallback className="text-lg">
-                    {nome ? nome.charAt(0).toUpperCase() : <Upload className="h-6 w-6" />}
-                  </AvatarFallback>
+                  <AvatarFallback className="text-lg">{nome ? nome.charAt(0).toUpperCase() : "?"}</AvatarFallback>
                 </Avatar>
-                <Input 
-                  id="foto" 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleFotoChange} 
-                  className="flex-1"
-                  disabled={loading}
-                />
+                <Input id="foto" type="file" accept="image/*" onChange={handleFotoChange} className="flex-1" />
               </div>
-              <p className="text-xs text-muted-foreground">
-                Máximo 5MB. Formatos: JPG, PNG, GIF
-              </p>
             </div>
 
             <div className="space-y-2">
@@ -190,62 +134,33 @@ export function RegisterForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="seu@email.com"
-                disabled={loading}
-                className={error && !email.trim() ? "border-destructive" : ""}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  minLength={6}
-                  disabled={loading}
-                  className={error && password.length < 6 ? "border-destructive pr-10" : "pr-10"}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  disabled={loading}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Mínimo 6 caracteres
-              </p>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                minLength={6}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  minLength={6}
-                  disabled={loading}
-                  className={error && password !== confirmPassword ? "border-destructive pr-10" : "pr-10"}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  disabled={loading}
-                >
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                minLength={6}
+              />
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
@@ -254,12 +169,7 @@ export function RegisterForm() {
 
             <div className="text-center text-sm text-muted-foreground">
               Já tem uma conta?{" "}
-              <Button 
-                variant="link" 
-                className="p-0 h-auto" 
-                onClick={() => router.push("/login")}
-                disabled={loading}
-              >
+              <Button variant="link" className="p-0 h-auto" onClick={() => router.push("/login")}>
                 Faça login
               </Button>
             </div>

@@ -2,7 +2,6 @@
 
 import { useAuth } from "@/contexts/auth-context"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { UserProfileEdit } from "./user-profile-edit"
 
 export function UserHeader() {
   const { user } = useAuth()
@@ -22,7 +21,6 @@ export function UserHeader() {
         <h2 className="text-xl font-semibold">Olá, {firstName}!</h2>
         <p className="text-sm text-muted-foreground">Bem-vindo ao sistema VisionX</p>
       </div>
-      <UserProfileEdit />
     </div>
   )
 }

@@ -3,17 +3,15 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Users, TrendingUp, TrendingDown, Menu, X, LogOut, FolderKanban } from "lucide-react"
+import { LayoutDashboard, Users, TrendingUp, TrendingDown, Menu, X, LogOut } from "lucide-react"
 import { useState } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/auth-context"
 import { fazerLogout } from "@/lib/auth"
-import { UserProfileEdit } from "@/components/dashboard/user-profile-edit"
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Projetos", href: "/projetos", icon: FolderKanban },
   { name: "Clientes", href: "/clientes", icon: Users },
   { name: "Receitas", href: "/receitas", icon: TrendingUp },
   { name: "Despesas", href: "/despesas", icon: TrendingDown },
@@ -82,12 +80,7 @@ export function Sidebar() {
           </nav>
 
           <div className="px-4 py-4 border-t border-border">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-xs text-muted-foreground">
-                Logado como: {user?.displayName || user?.email}
-              </div>
-              <UserProfileEdit />
-            </div>
+            <div className="mb-3 text-xs text-muted-foreground">Logado como: {user?.email}</div>
             <Button
               variant="outline"
               size="sm"
