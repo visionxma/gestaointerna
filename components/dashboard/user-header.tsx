@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Clock, User } from "lucide-react"
+import { useState, useEffect } from "react"
 
 interface UserHeaderProps {
   showWelcome?: boolean
@@ -13,17 +14,24 @@ interface UserHeaderProps {
 
 export function UserHeader({ showWelcome = true, variant = 'default', className }: UserHeaderProps) {
   const { user } = useAuth()
+  const [currentMessageIndex, setCurrentMessageIndex] = useState(0)
+  const [fade, setFade] = useState(false)
 
   if (!user) return null
 
   const displayName = user.displayName || user.email?.split("@")[0] || "Usuário"
   const firstName = displayName.split(" ")[0]
-  
+
   const getGreeting = () => {
     const hour = new Date().getHours()
-    if (hour < 12) return "Bom dia"
-    if (hour < 18) return "Boa tarde"
-    return "Boa noite"
+    switch (true) {
+      case hour >= 4 && hour < 12:
+        return "Bom dia"
+      case hour >= 12 && hour < 18:
+        return "Boa tarde"
+      default:
+        return "Boa noite"
+    }
   }
 
   const getCurrentDate = () => {
@@ -35,13 +43,37 @@ export function UserHeader({ showWelcome = true, variant = 'default', className 
     }).format(new Date())
   }
 
-  const getInitials = (name: string) => {
-    const words = name.split(" ")
-    if (words.length >= 2) {
-      return `${words[0].charAt(0)}${words[1].charAt(0)}`.toUpperCase()
-    }
-    return name.charAt(0).toUpperCase()
-  }
+  const getInitials = (name: string) =>
+    name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(word => word.charAt(0).toUpperCase())
+      .join("")
+
+  const motivationalMessages = [
+    "Acredite no seu potencial!",
+    "Cada dia é uma nova oportunidade.",
+    "O sucesso é a soma de pequenos esforços.",
+    "Não desista, grandes coisas levam tempo.",
+    "Seja a mudança que você quer ver.",
+    "O conhecimento é a chave do sucesso.",
+    "Pequenos passos também levam longe.",
+    "A disciplina vence o talento quando o talento não se disciplina.",
+    "Persistência é o caminho para a vitória.",
+    "Transforme desafios em oportunidades."
+  ]
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFade(true)
+      setTimeout(() => {
+        setCurrentMessageIndex(Math.floor(Math.random() * motivationalMessages.length))
+        setFade(false)
+      }, 500) // duração da transição
+    }, 10000) // troca a cada 10 segundos
+    return () => clearInterval(interval)
+  }, [])
 
   if (variant === 'compact') {
     return (
@@ -54,7 +86,7 @@ export function UserHeader({ showWelcome = true, variant = 'default', className 
         </Avatar>
         <div className="flex flex-col">
           <span className="text-sm font-medium text-gray-900">{firstName}</span>
-          <span className="text-xs text-muted-foreground">{user.email}</span>
+          <span className="text-xs text-muted-foreground truncate max-w-xs">{user.email}</span>
         </div>
       </div>
     )
@@ -65,7 +97,7 @@ export function UserHeader({ showWelcome = true, variant = 'default', className 
       {/* Background decoration */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-gray-300 rounded-full opacity-10 -translate-y-16 translate-x-16" />
       <div className="absolute bottom-0 left-0 w-24 h-24 bg-black rounded-full opacity-5 translate-y-12 -translate-x-12" />
-      
+
       <div className="relative flex items-center gap-4">
         <div className="relative">
           <Avatar className="h-16 w-16 border-4 border-white shadow-lg">
@@ -74,7 +106,7 @@ export function UserHeader({ showWelcome = true, variant = 'default', className 
               {getInitials(displayName)}
             </AvatarFallback>
           </Avatar>
-          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-2 border-white rounded-full flex items-center justify-center">
+          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-2 border-white rounded-full flex items-center justify-center animate-pulse" aria-label="Online">
             <div className="w-2 h-2 bg-white rounded-full"></div>
           </div>
         </div>
@@ -89,25 +121,30 @@ export function UserHeader({ showWelcome = true, variant = 'default', className 
               Online
             </Badge>
           </div>
-          
+
           {showWelcome && (
             <p className="text-gray-700 font-medium mb-2">
               Bem-vindo ao sistema VisionX
             </p>
           )}
-          
+
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Clock className="h-4 w-4" />
             <span className="capitalize">{getCurrentDate()}</span>
           </div>
         </div>
 
-        <div className="hidden sm:flex flex-col items-end text-right">
+        <div className="hidden sm:flex flex-col items-end text-right min-w-0">
           <div className="text-sm text-muted-foreground mb-1">Email</div>
-          <div className="text-sm font-medium text-gray-700 truncate max-w-48">
+          <div className="text-sm font-medium text-gray-700 truncate max-w-xs">
             {user.email}
           </div>
         </div>
+      </div>
+
+      {/* Mensagem motivacional */}
+      <div className={`mt-4 text-sm text-gray-600 font-medium italic text-center transition-opacity duration-500 ${fade ? 'opacity-0' : 'opacity-100'}`}>
+        {motivationalMessages[currentMessageIndex]}
       </div>
     </div>
   )
