@@ -45,11 +45,20 @@ export function ReciboForm({ onReciboAdicionado }: ReciboFormProps) {
 
   useEffect(() => {
     const carregarClientes = async () => {
-      const clientesData = await obterClientes()
-      setClientes(clientesData)
+      try {
+        const clientesData = await obterClientes()
+        setClientes(clientesData)
+      } catch (error) {
+        console.error('Erro ao carregar clientes:', error)
+        toast({
+          title: "Erro",
+          description: "Erro ao carregar clientes.",
+          variant: "destructive",
+        })
+      }
     }
     carregarClientes()
-  }, [])
+  }, [toast])
 
   const gerarNumeroRecibo = () => {
     const now = new Date()
@@ -61,21 +70,23 @@ export function ReciboForm({ onReciboAdicionado }: ReciboFormProps) {
   }
 
   const handleClienteChange = (clienteId: string) => {
-    setFormData({ ...formData, clienteId })
+    setFormData(prev => ({ ...prev, clienteId }))
     
     if (clienteId !== "none") {
       const cliente = clientes.find(c => c.id === clienteId)
       if (cliente) {
         setFormData(prev => ({
           ...prev,
+          clienteId,
           nomeCliente: cliente.nome,
-          emailCliente: cliente.email,
-          telefoneCliente: cliente.telefone,
+          emailCliente: cliente.email || "",
+          telefoneCliente: cliente.telefone || "",
         }))
       }
     } else {
       setFormData(prev => ({
         ...prev,
+        clienteId: "none",
         nomeCliente: "",
         emailCliente: "",
         telefoneCliente: "",
@@ -83,30 +94,87 @@ export function ReciboForm({ onReciboAdicionado }: ReciboFormProps) {
     }
   }
 
+  const validarFormulario = () => {
+    if (!formData.nomeCliente.trim()) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Nome do cliente é obrigatório.",
+        variant: "destructive",
+      })
+      return false
+    }
+
+    if (!formData.descricaoServico.trim()) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Descrição do serviço é obrigatória.",
+        variant: "destructive",
+      })
+      return false
+    }
+
+    if (!formData.valorPago || Number.parseFloat(formData.valorPago) <= 0) {
+      toast({
+        title: "Valor inválido",
+        description: "Valor pago deve ser maior que zero.",
+        variant: "destructive",
+      })
+      return false
+    }
+
+    if (!formData.dataPagamento) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Data do pagamento é obrigatória.",
+        variant: "destructive",
+      })
+      return false
+    }
+
+    return true
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    console.log('Iniciando criação do recibo...')
+    console.log('Dados do formulário:', formData)
+    
+    if (!validarFormulario()) {
+      return
+    }
+    
     setLoading(true)
 
     try {
-      await adicionarRecibo({
-        numeroRecibo: gerarNumeroRecibo(),
+      const numeroRecibo = gerarNumeroRecibo()
+      console.log('Número do recibo gerado:', numeroRecibo)
+
+      const reciboData = {
+        numeroRecibo,
         clienteId: formData.clienteId !== "none" ? formData.clienteId : undefined,
-        nomeCliente: formData.nomeCliente,
-        emailCliente: formData.emailCliente,
-        telefoneCliente: formData.telefoneCliente,
-        descricaoServico: formData.descricaoServico,
+        nomeCliente: formData.nomeCliente.trim(),
+        emailCliente: formData.emailCliente.trim() || undefined,
+        telefoneCliente: formData.telefoneCliente.trim() || undefined,
+        descricaoServico: formData.descricaoServico.trim(),
         valorPago: Number.parseFloat(formData.valorPago),
         formaPagamento: formData.formaPagamento,
         dataPagamento: new Date(formData.dataPagamento),
         dataVencimento: formData.dataVencimento ? new Date(formData.dataVencimento) : undefined,
-        observacoes: formData.observacoes,
+        observacoes: formData.observacoes.trim() || undefined,
         status: formData.status,
         dataCriacao: new Date(),
-      })
+      }
+
+      console.log('Dados que serão enviados para adicionarRecibo:', reciboData)
+
+      await adicionarRecibo(reciboData)
+
+      console.log('Recibo criado com sucesso!')
 
       toast({
-        title: "Recibo criado",
-        description: "Recibo foi criado com sucesso!",
+        title: "Sucesso!",
+        description: `Recibo ${numeroRecibo} criado com sucesso!`,
       })
 
       // Reset form
@@ -124,11 +192,16 @@ export function ReciboForm({ onReciboAdicionado }: ReciboFormProps) {
         status: "pago",
       })
 
-      onReciboAdicionado()
+      // Chama a função callback
+      if (onReciboAdicionado) {
+        onReciboAdicionado()
+      }
+
     } catch (error) {
+      console.error('Erro ao criar recibo:', error)
       toast({
         title: "Erro",
-        description: "Erro ao criar recibo. Tente novamente.",
+        description: error instanceof Error ? error.message : "Erro ao criar recibo. Tente novamente.",
         variant: "destructive",
       })
     } finally {
@@ -137,11 +210,11 @@ export function ReciboForm({ onReciboAdicionado }: ReciboFormProps) {
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target
-    setFormData({
-      ...formData,
-      [name]: type === "number" ? Number(value) : value,
-    })
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }))
   }
 
   return (
@@ -256,7 +329,7 @@ export function ReciboForm({ onReciboAdicionado }: ReciboFormProps) {
                 <Label htmlFor="formaPagamento">Forma de Pagamento *</Label>
                 <Select
                   value={formData.formaPagamento}
-                  onValueChange={(value: any) => setFormData({ ...formData, formaPagamento: value })}
+                  onValueChange={(value: any) => setFormData(prev => ({ ...prev, formaPagamento: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a forma" />
@@ -275,7 +348,7 @@ export function ReciboForm({ onReciboAdicionado }: ReciboFormProps) {
                 <Label htmlFor="status">Status *</Label>
                 <Select
                   value={formData.status}
-                  onValueChange={(value: any) => setFormData({ ...formData, status: value })}
+                  onValueChange={(value: any) => setFormData(prev => ({ ...prev, status: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o status" />
