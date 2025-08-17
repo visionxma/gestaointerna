@@ -1,6 +1,6 @@
 import { collection, addDoc, getDocs, query, orderBy, Timestamp, doc, updateDoc } from "firebase/firestore"
 import { db, auth } from "./firebase"
-import type { Cliente, Receita, Despesa, Senha, Projeto, AtividadeProjeto, Orcamento } from "./types"
+import type { Cliente, Receita, Despesa, Senha, Projeto, AtividadeProjeto, Orcamento, Recibo } from "./types"
 
 // Clientes
 export const adicionarCliente = async (cliente: Omit<Cliente, "id">) => {
