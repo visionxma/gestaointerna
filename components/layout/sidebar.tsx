@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Users, TrendingUp, TrendingDown, Menu, X, LogOut, Shield, FolderKanban, FileText, Receipt } from "lucide-react"
+import { LayoutDashboard, Users, TrendingUp, TrendingDown, Menu, X, LogOut, Shield, FolderKanban, FileText } from "lucide-react"
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -17,7 +17,6 @@ const navigation = [
   { name: "Orçamentos", href: "/orcamentos", icon: FileText },
   { name: "Receitas", href: "/receitas", icon: TrendingUp },
   { name: "Despesas", href: "/despesas", icon: TrendingDown },
-  { name: "Recibos", href: "/recibos", icon: Receipt },
   { name: "Senhas", href: "/senhas", icon: Shield },
 ]
 

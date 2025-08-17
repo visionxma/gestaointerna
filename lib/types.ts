@@ -101,21 +101,3 @@ export interface Orcamento {
   observacoes?: string
   registradoPor?: string
 }
-
-export interface Recibo {
-  id: string
-  numeroRecibo: string
-  clienteId?: string
-  nomeCliente: string
-  emailCliente: string
-  telefoneCliente: string
-  descricaoServico: string
-  valorPago: number
-  formaPagamento: 'dinheiro' | 'pix' | 'cartao' | 'transferencia' | 'boleto'
-  dataPagamento: Date
-  dataVencimento?: Date
-  observacoes?: string
-  status: 'pago' | 'pendente' | 'cancelado'
-  dataCriacao: Date
-  registradoPor?: string
-}
