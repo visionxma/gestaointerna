@@ -70,3 +70,6 @@ export const MonthlyOverview = memo(function MonthlyOverview({ receitas, despesa
       </CardContent>
     </Card>
   )
+
+}
+)
