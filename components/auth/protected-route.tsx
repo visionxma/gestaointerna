@@ -12,7 +12,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push("/login")
+      router.replace("/login") // replace evita loop no histórico
     }
   }, [user, loading, router])
 
@@ -28,7 +28,13 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    return null
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="text-sm text-gray-600 font-medium">
+          Redirecionando para login...
+        </span>
+      </div>
+    )
   }
 
   return <>{children}</>
