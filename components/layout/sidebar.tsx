@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { LayoutDashboard, Users, TrendingUp, TrendingDown, Menu, X, LogOut } from "lucide-react"
-import { useState } from "react"
+import { useState, useCallback, memo } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/auth-context"
@@ -17,24 +17,32 @@ const navigation = [
   { name: "Despesas", href: "/despesas", icon: TrendingDown },
 ]
 
-export function Sidebar() {
+export const Sidebar = memo(function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { user } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     const { error } = await fazerLogout()
     if (!error) {
       router.push("/login")
     }
-  }
+  }, [router])
+
+  const toggleSidebar = useCallback(() => {
+    setIsOpen(!isOpen)
+  }, [isOpen])
+
+  const closeSidebar = useCallback(() => {
+    setIsOpen(false)
+  }, [])
 
   return (
     <>
       {/* Mobile menu button */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
-        <button onClick={() => setIsOpen(!isOpen)} className="p-2 bg-background border border-border rounded-md">
+        <button onClick={toggleSidebar} className="p-2 bg-background border border-border rounded-md">
           {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
@@ -49,7 +57,14 @@ export function Sidebar() {
         <div className="flex flex-col h-full">
           <div className="flex flex-col items-center justify-center px-4 py-6 border-b border-border">
             <div className="w-32 h-12 relative mb-2">
-              <Image src="./images/visionx-logo.png" alt="VisionX Logo" fill className="object-contain" priority />
+              <Image 
+                src="./images/visionx-logo.png" 
+                alt="VisionX Logo" 
+                fill 
+                className="object-contain" 
+                priority 
+                sizes="128px"
+              />
             </div>
             <div className="text-center">
               <h1 className="text-sm font-semibold text-foreground">Sistema de Gestão</h1>
@@ -64,7 +79,7 @@ export function Sidebar() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  onClick={() => setIsOpen(false)}
+                  onClick={closeSidebar}
                   className={cn(
                     "flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors",
                     isActive
@@ -95,7 +110,6 @@ export function Sidebar() {
       </div>
 
       {/* Overlay for mobile */}
-      {isOpen && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setIsOpen(false)} />}
+      {isOpen && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={closeSidebar} />}
     </>
   )
-}

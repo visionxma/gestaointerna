@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, memo } from "react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DespesaCard } from "./despesa-card"
@@ -26,43 +26,51 @@ const categorias = [
   "Outros",
 ]
 
-export function DespesasList({ despesas }: DespesasListProps) {
+export const DespesasList = memo(function DespesasList({ despesas }: DespesasListProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [categoriaFiltro, setCategoriaFiltro] = useState("Todas")
   const [periodoFiltro, setPeriodoFiltro] = useState("Todos")
 
-  const despesasFiltradas = despesas.filter((despesa) => {
-    const matchesSearch =
-      despesa.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      despesa.categoria.toLowerCase().includes(searchTerm.toLowerCase())
+  const despesasFiltradas = useMemo(() => {
+    const searchLower = searchTerm.toLowerCase()
+    const hoje = new Date()
+    
+    return despesas.filter((despesa) => {
+      const matchesSearch = !searchTerm || (
+        despesa.descricao.toLowerCase().includes(searchLower) ||
+        despesa.categoria.toLowerCase().includes(searchLower)
+      )
 
-    const matchesCategoria = categoriaFiltro === "Todas" || despesa.categoria === categoriaFiltro
+      const matchesCategoria = categoriaFiltro === "Todas" || despesa.categoria === categoriaFiltro
 
-    let matchesPeriodo = true
-    if (periodoFiltro !== "Todos") {
-      const hoje = new Date()
-      const despesaDate = new Date(despesa.data)
+      let matchesPeriodo = true
+      if (periodoFiltro !== "Todos") {
+        const despesaDate = new Date(despesa.data)
 
-      switch (periodoFiltro) {
-        case "Este mês":
-          matchesPeriodo =
-            despesaDate.getMonth() === hoje.getMonth() && despesaDate.getFullYear() === hoje.getFullYear()
-          break
-        case "Últimos 3 meses":
-          const tresMesesAtras = new Date()
-          tresMesesAtras.setMonth(hoje.getMonth() - 3)
-          matchesPeriodo = despesaDate >= tresMesesAtras
-          break
-        case "Este ano":
-          matchesPeriodo = despesaDate.getFullYear() === hoje.getFullYear()
-          break
+        switch (periodoFiltro) {
+          case "Este mês":
+            matchesPeriodo =
+              despesaDate.getMonth() === hoje.getMonth() && despesaDate.getFullYear() === hoje.getFullYear()
+            break
+          case "Últimos 3 meses":
+            const tresMesesAtras = new Date()
+            tresMesesAtras.setMonth(hoje.getMonth() - 3)
+            matchesPeriodo = despesaDate >= tresMesesAtras
+            break
+          case "Este ano":
+            matchesPeriodo = despesaDate.getFullYear() === hoje.getFullYear()
+            break
+        }
       }
-    }
 
-    return matchesSearch && matchesCategoria && matchesPeriodo
-  })
+      return matchesSearch && matchesCategoria && matchesPeriodo
+    })
+  }, [despesas, searchTerm, categoriaFiltro, periodoFiltro])
 
-  const totalDespesas = despesasFiltradas.reduce((sum, despesa) => sum + despesa.valor, 0)
+  const totalDespesas = useMemo(() => 
+    despesasFiltradas.reduce((sum, despesa) => sum + despesa.valor, 0),
+    [despesasFiltradas]
+  )
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -72,17 +80,23 @@ export function DespesasList({ despesas }: DespesasListProps) {
   }
 
   // Agrupar despesas por categoria para estatísticas
-  const despesasPorCategoria = despesasFiltradas.reduce(
-    (acc, despesa) => {
-      acc[despesa.categoria] = (acc[despesa.categoria] || 0) + despesa.valor
-      return acc
-    },
-    {} as Record<string, number>,
+  const despesasPorCategoria = useMemo(() => 
+    despesasFiltradas.reduce(
+      (acc, despesa) => {
+        acc[despesa.categoria] = (acc[despesa.categoria] || 0) + despesa.valor
+        return acc
+      },
+      {} as Record<string, number>,
+    ),
+    [despesasFiltradas]
   )
 
-  const categoriaComMaiorGasto = Object.entries(despesasPorCategoria).reduce(
-    (max, [categoria, valor]) => (valor > max.valor ? { categoria, valor } : max),
-    { categoria: "", valor: 0 },
+  const categoriaComMaiorGasto = useMemo(() => 
+    Object.entries(despesasPorCategoria).reduce(
+      (max, [categoria, valor]) => (valor > max.valor ? { categoria, valor } : max),
+      { categoria: "", valor: 0 },
+    ),
+    [despesasPorCategoria]
   )
 
   return (

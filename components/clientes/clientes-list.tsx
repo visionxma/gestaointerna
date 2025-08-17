@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, memo } from "react"
 import { Input } from "@/components/ui/input"
 import { ClienteCard } from "./cliente-card"
 import { Search } from "lucide-react"
@@ -10,15 +10,20 @@ interface ClientesListProps {
   clientes: Cliente[]
 }
 
-export function ClientesList({ clientes }: ClientesListProps) {
+export const ClientesList = memo(function ClientesList({ clientes }: ClientesListProps) {
   const [searchTerm, setSearchTerm] = useState("")
 
-  const clientesFiltrados = clientes.filter(
-    (cliente) =>
-      cliente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cliente.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cliente.servico.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  const clientesFiltrados = useMemo(() => {
+    if (!searchTerm) return clientes
+    
+    const searchLower = searchTerm.toLowerCase()
+    return clientes.filter(
+      (cliente) =>
+        cliente.nome.toLowerCase().includes(searchLower) ||
+        cliente.email.toLowerCase().includes(searchLower) ||
+        cliente.servico.toLowerCase().includes(searchLower),
+    )
+  }, [clientes, searchTerm])
 
   return (
     <div className="space-y-6">
@@ -47,4 +52,3 @@ export function ClientesList({ clientes }: ClientesListProps) {
       )}
     </div>
   )
-}

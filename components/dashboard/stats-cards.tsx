@@ -1,5 +1,6 @@
 "use client"
 
+import { memo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, TrendingDown, Users, DollarSign } from "lucide-react"
 import type { DashboardData } from "@/lib/types"
@@ -8,7 +9,7 @@ interface StatsCardsProps {
   data: DashboardData
 }
 
-export function StatsCards({ data }: StatsCardsProps) {
+export const StatsCards = memo(function StatsCards({ data }: StatsCardsProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -58,4 +59,3 @@ export function StatsCards({ data }: StatsCardsProps) {
       ))}
     </div>
   )
-}

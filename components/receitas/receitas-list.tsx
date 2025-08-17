@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, memo } from "react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ReceitaCard } from "./receita-card"
@@ -24,43 +24,51 @@ const categorias = [
   "Outros",
 ]
 
-export function ReceitasList({ receitas, clientes }: ReceitasListProps) {
+export const ReceitasList = memo(function ReceitasList({ receitas, clientes }: ReceitasListProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [categoriaFiltro, setCategoriaFiltro] = useState("Todas")
   const [periodoFiltro, setPeriodoFiltro] = useState("Todos")
 
-  const receitasFiltradas = receitas.filter((receita) => {
-    const matchesSearch =
-      receita.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      receita.categoria.toLowerCase().includes(searchTerm.toLowerCase())
+  const receitasFiltradas = useMemo(() => {
+    const searchLower = searchTerm.toLowerCase()
+    const hoje = new Date()
+    
+    return receitas.filter((receita) => {
+      const matchesSearch = !searchTerm || (
+        receita.descricao.toLowerCase().includes(searchLower) ||
+        receita.categoria.toLowerCase().includes(searchLower)
+      )
 
-    const matchesCategoria = categoriaFiltro === "Todas" || receita.categoria === categoriaFiltro
+      const matchesCategoria = categoriaFiltro === "Todas" || receita.categoria === categoriaFiltro
 
-    let matchesPeriodo = true
-    if (periodoFiltro !== "Todos") {
-      const hoje = new Date()
-      const receitaDate = new Date(receita.data)
+      let matchesPeriodo = true
+      if (periodoFiltro !== "Todos") {
+        const receitaDate = new Date(receita.data)
 
-      switch (periodoFiltro) {
-        case "Este mês":
-          matchesPeriodo =
-            receitaDate.getMonth() === hoje.getMonth() && receitaDate.getFullYear() === hoje.getFullYear()
-          break
-        case "Últimos 3 meses":
-          const tresMesesAtras = new Date()
-          tresMesesAtras.setMonth(hoje.getMonth() - 3)
-          matchesPeriodo = receitaDate >= tresMesesAtras
-          break
-        case "Este ano":
-          matchesPeriodo = receitaDate.getFullYear() === hoje.getFullYear()
-          break
+        switch (periodoFiltro) {
+          case "Este mês":
+            matchesPeriodo =
+              receitaDate.getMonth() === hoje.getMonth() && receitaDate.getFullYear() === hoje.getFullYear()
+            break
+          case "Últimos 3 meses":
+            const tresMesesAtras = new Date()
+            tresMesesAtras.setMonth(hoje.getMonth() - 3)
+            matchesPeriodo = receitaDate >= tresMesesAtras
+            break
+          case "Este ano":
+            matchesPeriodo = receitaDate.getFullYear() === hoje.getFullYear()
+            break
+        }
       }
-    }
 
-    return matchesSearch && matchesCategoria && matchesPeriodo
-  })
+      return matchesSearch && matchesCategoria && matchesPeriodo
+    })
+  }, [receitas, searchTerm, categoriaFiltro, periodoFiltro])
 
-  const totalReceitas = receitasFiltradas.reduce((sum, receita) => sum + receita.valor, 0)
+  const totalReceitas = useMemo(() => 
+    receitasFiltradas.reduce((sum, receita) => sum + receita.valor, 0),
+    [receitasFiltradas]
+  )
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {

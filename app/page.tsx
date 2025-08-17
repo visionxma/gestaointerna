@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo, useCallback } from "react"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { Sidebar } from "@/components/layout/sidebar"
 import { UserHeader } from "@/components/dashboard/user-header"
@@ -17,48 +17,56 @@ export default function HomePage() {
   const [despesas, setDespesas] = useState<Despesa[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const carregarDados = async () => {
-      try {
-        const [clientesData, receitasData, despesasData] = await Promise.all([
-          obterClientes(),
-          obterReceitas(),
-          obterDespesas(),
-        ])
+  const carregarDados = useCallback(async () => {
+    try {
+      const [clientesData, receitasData, despesasData] = await Promise.all([
+        obterClientes(),
+        obterReceitas(),
+        obterDespesas(),
+      ])
 
-        setClientes(clientesData)
-        setReceitas(receitasData)
-        setDespesas(despesasData)
-      } catch (error) {
-        console.error("Erro ao carregar dados:", error)
-      } finally {
-        setLoading(false)
-      }
+      setClientes(clientesData)
+      setReceitas(receitasData)
+      setDespesas(despesasData)
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error)
+    } finally {
+      setLoading(false)
     }
-
-    carregarDados()
   }, [])
 
-  const dashboardData: DashboardData = {
-    totalReceitas: receitas.reduce((sum, r) => sum + r.valor, 0),
-    totalDespesas: despesas.reduce((sum, d) => sum + d.valor, 0),
-    lucro: receitas.reduce((sum, r) => sum + r.valor, 0) - despesas.reduce((sum, d) => sum + d.valor, 0),
-    totalClientes: clientes.length,
-    receitasMes: receitas
+  useEffect(() => {
+    carregarDados()
+  }, [carregarDados])
+
+  const dashboardData: DashboardData = useMemo(() => {
+    const totalReceitas = receitas.reduce((sum, r) => sum + r.valor, 0)
+    const totalDespesas = despesas.reduce((sum, d) => sum + d.valor, 0)
+    const now = new Date()
+    
+    const receitasMes = receitas
       .filter((r) => {
-        const now = new Date()
         const rDate = new Date(r.data)
         return rDate.getMonth() === now.getMonth() && rDate.getFullYear() === now.getFullYear()
       })
-      .reduce((sum, r) => sum + r.valor, 0),
-    despesasMes: despesas
+      .reduce((sum, r) => sum + r.valor, 0)
+    
+    const despesasMes = despesas
       .filter((d) => {
-        const now = new Date()
         const dDate = new Date(d.data)
         return dDate.getMonth() === now.getMonth() && dDate.getFullYear() === now.getFullYear()
       })
-      .reduce((sum, d) => sum + d.valor, 0),
-  }
+      .reduce((sum, d) => sum + d.valor, 0)
+
+    return {
+      totalReceitas,
+      totalDespesas,
+      lucro: totalReceitas - totalDespesas,
+      totalClientes: clientes.length,
+      receitasMes,
+      despesasMes,
+    }
+  }, [receitas, despesas, clientes])
 
   if (loading) {
     return (
@@ -68,7 +76,7 @@ export default function HomePage() {
           <main className="flex-1 lg:ml-64 p-8">
             <div className="max-w-7xl mx-auto">
               <div className="flex items-center justify-center h-64">
-                <div className="text-muted-foreground">Carregando...</div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             </div>
           </main>
