@@ -32,32 +32,41 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile menu button */}
+      {/* Botão mobile */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
-        <button onClick={() => setIsOpen(!isOpen)} className="p-2 bg-background border border-border rounded-md">
-          {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="p-2 rounded-md bg-white shadow-md border border-gray-200 hover:bg-gray-50 transition"
+        >
+          {isOpen ? <X className="h-5 w-5 text-gray-700" /> : <Menu className="h-5 w-5 text-gray-700" />}
         </button>
       </div>
 
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-64 bg-background border-r border-border transform transition-transform duration-200 ease-in-out lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 w-64 bg-gradient-to-br from-gray-50 to-gray-100 border-r border-gray-200 transform transition-transform duration-200 ease-in-out lg:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex flex-col h-full">
-          <div className="flex flex-col items-center justify-center px-4 py-6 border-b border-border">
+        <div className="flex flex-col h-full relative overflow-hidden">
+          {/* Decorações de fundo */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gray-300 rounded-full opacity-10 -translate-y-16 translate-x-16" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-black rounded-full opacity-5 translate-y-12 -translate-x-12" />
+
+          {/* Logo e título */}
+          <div className="relative flex flex-col items-center justify-center px-4 py-6 border-b border-gray-200 z-10">
             <div className="w-32 h-12 relative mb-2">
               <Image src="./images/visionx-logo.png" alt="VisionX Logo" fill className="object-contain" priority />
             </div>
             <div className="text-center">
-              <h1 className="text-sm font-semibold text-foreground">Sistema de Gestão</h1>
-              <p className="text-xs text-muted-foreground">Interno VisionX</p>
+              <h1 className="text-sm font-semibold text-gray-900">Sistema de Gestão</h1>
+              <p className="text-xs text-gray-600">Interno VisionX</p>
             </div>
           </div>
 
-          <nav className="flex-1 px-4 py-6 space-y-2">
+          {/* Navegação */}
+          <nav className="relative flex-1 px-4 py-6 space-y-2 z-10">
             {navigation.map((item) => {
               const isActive = pathname === item.href
               return (
@@ -66,10 +75,10 @@ export function Sidebar() {
                   href={item.href}
                   onClick={() => setIsOpen(false)}
                   className={cn(
-                    "flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors",
+                    "flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-150",
                     isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
                   )}
                 >
                   <item.icon className="mr-3 h-5 w-5" />
@@ -79,13 +88,16 @@ export function Sidebar() {
             })}
           </nav>
 
-          <div className="px-4 py-4 border-t border-border">
-            <div className="mb-3 text-xs text-muted-foreground">Logado como: {user?.email}</div>
+          {/* Rodapé com usuário e logout */}
+          <div className="relative px-4 py-4 border-t border-gray-200 z-10 bg-white/70 backdrop-blur-md">
+            <div className="mb-3 text-xs text-gray-500 truncate">
+              Logado como: <span className="font-medium text-gray-700">{user?.email}</span>
+            </div>
             <Button
               variant="outline"
               size="sm"
               onClick={handleLogout}
-              className="w-full flex items-center justify-center bg-transparent"
+              className="w-full flex items-center justify-center rounded-lg border-gray-300 hover:bg-gray-50"
             >
               <LogOut className="mr-2 h-4 w-4" />
               Sair
@@ -94,7 +106,7 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* Overlay for mobile */}
+      {/* Overlay mobile */}
       {isOpen && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setIsOpen(false)} />}
     </>
   )
