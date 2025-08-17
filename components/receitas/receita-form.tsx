@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,9 +8,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { adicionarReceita } from "@/lib/database"
-import { obterClientes } from "@/lib/database"
+import { adicionarReceita, obterClientes } from "@/lib/database"
 import { useToast } from "@/hooks/use-toast"
+import { DollarSign } from "lucide-react"
 import type { Cliente } from "@/lib/types"
 
 interface ReceitaFormProps {
@@ -36,7 +35,7 @@ export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
   const [formData, setFormData] = useState({
     descricao: "",
     valor: "",
-    clienteId: "none", // Changed from empty string to "none" to avoid Select error
+    clienteId: "none",
     categoria: "Desenvolvimento Web",
     data: new Date().toISOString().split("T")[0],
   })
@@ -61,7 +60,6 @@ export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
         data: new Date(formData.data),
       }
 
-      // Only add clienteId if a client is selected (not "none")
       if (formData.clienteId !== "none") {
         receitaData.clienteId = formData.clienteId
       }
@@ -76,7 +74,7 @@ export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
       setFormData({
         descricao: "",
         valor: "",
-        clienteId: "none", // Reset to "none" instead of empty string
+        clienteId: "none",
         categoria: "Desenvolvimento Web",
         data: new Date().toISOString().split("T")[0],
       })
@@ -101,12 +99,23 @@ export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Adicionar Nova Receita</CardTitle>
+    <Card className="relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 shadow-sm">
+      {/* Decorações de fundo */}
+      <div className="absolute top-0 right-0 w-40 h-40 bg-gray-300 rounded-full opacity-10 -translate-y-20 translate-x-20" />
+      <div className="absolute bottom-0 left-0 w-28 h-28 bg-black rounded-full opacity-5 translate-y-14 -translate-x-14" />
+
+      <CardHeader className="relative">
+        <div className="flex items-center gap-2">
+          <DollarSign className="h-5 w-5 text-gray-700" />
+          <CardTitle className="text-xl font-bold text-gray-900">Adicionar Nova Receita</CardTitle>
+        </div>
+        <p className="text-sm text-muted-foreground mt-1">
+          Preencha os campos abaixo para registrar uma nova receita no sistema.
+        </p>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+
+      <CardContent className="relative">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="descricao">Descrição *</Label>
             <Textarea
@@ -135,6 +144,7 @@ export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
                 placeholder="0,00"
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="categoria">Categoria *</Label>
               <Select
@@ -153,9 +163,17 @@ export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="data">Data *</Label>
-              <Input id="data" name="data" type="date" value={formData.data} onChange={handleChange} required />
+              <Input
+                id="data"
+                name="data"
+                type="date"
+                value={formData.data}
+                onChange={handleChange}
+                required
+              />
             </div>
           </div>
 
@@ -179,7 +197,11 @@ export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
             </Select>
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full">
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-green-600 hover:bg-green-700 text-white transition-colors duration-200"
+          >
             {loading ? "Adicionando..." : "Adicionar Receita"}
           </Button>
         </form>

@@ -37,9 +37,9 @@ export function LoginForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-      <Card className="relative w-full max-w-md overflow-hidden rounded-xl border border-gray-200 shadow-md transition-all duration-200 hover:shadow-lg">
+      <Card className="relative w-full max-w-md rounded-xl border border-gray-200 shadow-md transition-transform duration-200 hover:shadow-lg hover:scale-[1.02] overflow-hidden">
         
-        {/* Background decoration */}
+        {/* Background decorations */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-gray-300 rounded-full opacity-10 -translate-y-16 translate-x-16" />
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-black rounded-full opacity-5 translate-y-12 -translate-x-12" />
 

@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { adicionarDespesa } from "@/lib/database"
 import { useToast } from "@/hooks/use-toast"
+import { Wallet } from "lucide-react"
 
 interface DespesaFormProps {
   onDespesaAdicionada: () => void
@@ -36,7 +36,7 @@ export function DespesaForm({ onDespesaAdicionada }: DespesaFormProps) {
   const [formData, setFormData] = useState({
     descricao: "",
     valor: "",
-    categoria: "Hospedagem/Servidor", // Updated default value to be a non-empty string
+    categoria: "Hospedagem/Servidor",
     data: new Date().toISOString().split("T")[0],
   })
 
@@ -60,7 +60,7 @@ export function DespesaForm({ onDespesaAdicionada }: DespesaFormProps) {
       setFormData({
         descricao: "",
         valor: "",
-        categoria: "Hospedagem/Servidor", // Updated default value to be a non-empty string
+        categoria: "Hospedagem/Servidor",
         data: new Date().toISOString().split("T")[0],
       })
 
@@ -84,12 +84,23 @@ export function DespesaForm({ onDespesaAdicionada }: DespesaFormProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Adicionar Nova Despesa</CardTitle>
+    <Card className="relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 shadow-sm">
+      {/* Decorações de fundo */}
+      <div className="absolute top-0 right-0 w-40 h-40 bg-gray-300 rounded-full opacity-10 -translate-y-20 translate-x-20" />
+      <div className="absolute bottom-0 left-0 w-28 h-28 bg-black rounded-full opacity-5 translate-y-14 -translate-x-14" />
+
+      <CardHeader className="relative">
+        <div className="flex items-center gap-2">
+          <Wallet className="h-5 w-5 text-gray-700" />
+          <CardTitle className="text-xl font-bold text-gray-900">Adicionar Nova Despesa</CardTitle>
+        </div>
+        <p className="text-sm text-muted-foreground mt-1">
+          Preencha os campos abaixo para registrar uma nova despesa no sistema.
+        </p>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+
+      <CardContent className="relative">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="descricao">Descrição *</Label>
             <Textarea
@@ -118,6 +129,7 @@ export function DespesaForm({ onDespesaAdicionada }: DespesaFormProps) {
                 placeholder="0,00"
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="categoria">Categoria *</Label>
               <Select
@@ -136,13 +148,25 @@ export function DespesaForm({ onDespesaAdicionada }: DespesaFormProps) {
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="data">Data *</Label>
-              <Input id="data" name="data" type="date" value={formData.data} onChange={handleChange} required />
+              <Input
+                id="data"
+                name="data"
+                type="date"
+                value={formData.data}
+                onChange={handleChange}
+                required
+              />
             </div>
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full">
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-green-600 hover:bg-green-700 text-white transition-colors duration-200"
+          >
             {loading ? "Adicionando..." : "Adicionar Despesa"}
           </Button>
         </form>
