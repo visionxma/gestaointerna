@@ -73,3 +73,31 @@ export interface AtividadeProjeto {
   dataConclusao?: Date
   registradoPor?: string
 }
+
+export interface ItemOrcamento {
+  id: string
+  descricao: string
+  quantidade: number
+  valorUnitario: number
+  valorTotal: number
+}
+
+export interface Orcamento {
+  id: string
+  numeroOrcamento: string
+  clienteId?: string
+  nomeCliente: string
+  emailCliente: string
+  telefoneCliente: string
+  titulo: string
+  descricao?: string
+  itens: ItemOrcamento[]
+  subtotal: number
+  desconto: number
+  valorTotal: number
+  status: 'rascunho' | 'enviado' | 'aprovado' | 'rejeitado'
+  dataVencimento: Date
+  dataCriacao: Date
+  observacoes?: string
+  registradoPor?: string
+}

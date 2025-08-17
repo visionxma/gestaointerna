@@ -1,6 +1,6 @@
 import { collection, addDoc, getDocs, query, orderBy, Timestamp, doc, updateDoc } from "firebase/firestore"
 import { db, auth } from "./firebase"
-import type { Cliente, Receita, Despesa, Senha, Projeto, AtividadeProjeto } from "./types"
+import type { Cliente, Receita, Despesa, Senha, Projeto, AtividadeProjeto, Orcamento } from "./types"
 
 // Clientes
 export const adicionarCliente = async (cliente: Omit<Cliente, "id">) => {
@@ -305,6 +305,80 @@ export const atualizarAtividadeProjeto = async (atividadeId: string, concluida: 
     await updateDoc(docRef, updateData)
   } catch (error) {
     console.error("Erro ao atualizar atividade do projeto:", error)
+    throw error
+  }
+}
+
+// Orçamentos
+export const adicionarOrcamento = async (orcamento: Omit<Orcamento, "id">) => {
+  try {
+    if (!auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const docRef = await addDoc(collection(db, "orcamentos"), {
+      ...orcamento,
+      dataCriacao: Timestamp.fromDate(orcamento.dataCriacao),
+      dataVencimento: Timestamp.fromDate(orcamento.dataVencimento),
+      registradoPor: auth.currentUser.displayName || auth.currentUser.email || "Usuário",
+    })
+    return docRef.id
+  } catch (error) {
+    console.error("Erro ao adicionar orçamento:", error)
+    throw error
+  }
+}
+
+export const obterOrcamentos = async (): Promise<Orcamento[]> => {
+  try {
+    if (!auth.currentUser) {
+      console.log("[v0] Usuário não autenticado, retornando array vazio")
+      return []
+    }
+
+    const q = query(collection(db, "orcamentos"), orderBy("dataCriacao", "desc"))
+    const querySnapshot = await getDocs(q)
+    return querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      dataCriacao: doc.data().dataCriacao.toDate(),
+      dataVencimento: doc.data().dataVencimento.toDate(),
+    })) as Orcamento[]
+  } catch (error) {
+    console.error("Erro ao obter orçamentos:", error)
+    return []
+  }
+}
+
+export const atualizarOrcamento = async (orcamentoId: string, dados: Partial<Orcamento>) => {
+  try {
+    if (!auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const updateData: any = { ...dados }
+    if (dados.dataVencimento) {
+      updateData.dataVencimento = Timestamp.fromDate(dados.dataVencimento)
+    }
+
+    const docRef = doc(db, "orcamentos", orcamentoId)
+    await updateDoc(docRef, updateData)
+  } catch (error) {
+    console.error("Erro ao atualizar orçamento:", error)
+    throw error
+  }
+}
+
+export const atualizarStatusOrcamento = async (orcamentoId: string, status: Orcamento['status']) => {
+  try {
+    if (!auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const docRef = doc(db, "orcamentos", orcamentoId)
+    await updateDoc(docRef, { status })
+  } catch (error) {
+    console.error("Erro ao atualizar status do orçamento:", error)
     throw error
   }
 }
