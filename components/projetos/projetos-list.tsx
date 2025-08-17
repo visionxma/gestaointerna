@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ProjetoCard } from "./projeto-card"
+import { ProjetoAtividadesModal } from "./projeto-atividades-modal"
 import { Search, Filter, FolderKanban } from "lucide-react"
 import type { Projeto, Cliente } from "@/lib/types"
 
@@ -23,6 +24,8 @@ const statusOptions = [
 export function ProjetosList({ projetos, clientes, onStatusChange }: ProjetosListProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFiltro, setStatusFiltro] = useState("todos")
+  const [projetoSelecionado, setProjetoSelecionado] = useState<Projeto | null>(null)
+  const [modalAtividadesOpen, setModalAtividadesOpen] = useState(false)
 
   const projetosFiltrados = projetos.filter((projeto) => {
     const matchesSearch =
@@ -48,6 +51,11 @@ export function ProjetosList({ projetos, clientes, onStatusChange }: ProjetosLis
     desenvolvimento: projetos.filter(p => p.status === 'desenvolvimento').length,
     entregue: projetos.filter(p => p.status === 'entregue').length,
     valorTotal: projetos.reduce((sum, p) => sum + (p.valor || 0), 0),
+  }
+
+  const handleViewActivities = (projeto: Projeto) => {
+    setProjetoSelecionado(projeto)
+    setModalAtividadesOpen(true)
   }
 
   return (
@@ -139,11 +147,18 @@ export function ProjetosList({ projetos, clientes, onStatusChange }: ProjetosLis
                 projeto={projeto}
                 cliente={cliente}
                 onStatusChange={onStatusChange}
+                onViewActivities={handleViewActivities}
               />
             )
           })}
         </div>
       )}
+
+      <ProjetoAtividadesModal
+        projeto={projetoSelecionado}
+        open={modalAtividadesOpen}
+        onOpenChange={setModalAtividadesOpen}
+      />
     </div>
   )
 }

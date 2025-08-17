@@ -5,22 +5,42 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, User, DollarSign, Clock, UserCheck, FolderKanban } from "lucide-react"
+import { Calendar, User, DollarSign, Clock, UserCheck, FolderKanban, CheckSquare } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { atualizarStatusProjeto } from "@/lib/database"
-import type { Projeto, Cliente } from "@/lib/types"
+import { atualizarStatusProjeto, obterAtividadesProjeto } from "@/lib/database"
+import type { Projeto, Cliente, AtividadeProjeto } from "@/lib/types"
+import { useEffect } from "react"
 
 interface ProjetoCardProps {
   projeto: Projeto
   cliente?: Cliente
   onStatusChange?: () => void
+  onViewActivities?: (projeto: Projeto) => void
   onClick?: () => void
   className?: string
 }
 
-export function ProjetoCard({ projeto, cliente, onStatusChange, onClick, className }: ProjetoCardProps) {
+export function ProjetoCard({ projeto, cliente, onStatusChange, onViewActivities, onClick, className }: ProjetoCardProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [atividades, setAtividades] = useState<AtividadeProjeto[]>([])
+  const [loadingAtividades, setLoadingAtividades] = useState(false)
+
+  useEffect(() => {
+    const carregarAtividades = async () => {
+      setLoadingAtividades(true)
+      try {
+        const atividadesData = await obterAtividadesProjeto(projeto.id)
+        setAtividades(atividadesData)
+      } catch (error) {
+        console.error("Erro ao carregar atividades:", error)
+      } finally {
+        setLoadingAtividades(false)
+      }
+    }
+
+    carregarAtividades()
+  }, [projeto.id])
 
   const formatDate = (date: Date | string) => {
     const dateObj = typeof date === "string" ? new Date(date) : date
@@ -101,6 +121,10 @@ export function ProjetoCard({ projeto, cliente, onStatusChange, onClick, classNa
   }
 
   const daysInfo = getDaysRemaining()
+
+  const atividadesConcluidas = atividades.filter(a => a.concluida).length
+  const totalAtividades = atividades.length
+  const progressoAtividades = totalAtividades > 0 ? (atividadesConcluidas / totalAtividades) * 100 : 0
 
   return (
     <Card
@@ -212,6 +236,25 @@ export function ProjetoCard({ projeto, cliente, onStatusChange, onClick, classNa
           )}
         </div>
 
+        {/* Progresso das Atividades */}
+        {totalAtividades > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm">
+                <CheckSquare className="h-4 w-4 text-muted-foreground" />
+                <span className="text-gray-700">Atividades: {atividadesConcluidas}/{totalAtividades}</span>
+              </div>
+              <span className="text-sm font-medium text-gray-700">{Math.round(progressoAtividades)}%</span>
+            </div>
+            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-green-500 transition-all duration-300"
+                style={{ width: `${progressoAtividades}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Observações */}
         {projeto.observacoes && (
           <div className="pt-2 border-t border-gray-100">
@@ -230,6 +273,24 @@ export function ProjetoCard({ projeto, cliente, onStatusChange, onClick, classNa
                 Registrado por {projeto.registradoPor}
               </span>
             </div>
+          </div>
+        )}
+
+        {/* Botão para ver atividades */}
+        {onViewActivities && (
+          <div className="pt-2 border-t border-gray-100">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                onViewActivities(projeto)
+              }}
+              className="w-full text-xs"
+            >
+              <CheckSquare className="h-3 w-3 mr-2" />
+              Ver Checklist ({totalAtividades} atividade{totalAtividades !== 1 ? 's' : ''})
+            </Button>
           </div>
         )}
       </CardContent>

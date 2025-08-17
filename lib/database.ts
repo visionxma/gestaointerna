@@ -1,6 +1,6 @@
 import { collection, addDoc, getDocs, query, orderBy, Timestamp, doc, updateDoc } from "firebase/firestore"
 import { db, auth } from "./firebase"
-import type { Cliente, Receita, Despesa, Senha, Projeto } from "./types"
+import type { Cliente, Receita, Despesa, Senha, Projeto, AtividadeProjeto } from "./types"
 
 // Clientes
 export const adicionarCliente = async (cliente: Omit<Cliente, "id">) => {
@@ -216,6 +216,71 @@ export const atualizarStatusProjeto = async (projetoId: string, status: Projeto[
     await updateDoc(docRef, updateData)
   } catch (error) {
     console.error("Erro ao atualizar status do projeto:", error)
+    throw error
+  }
+}
+// Atividades do Projeto
+export const adicionarAtividadeProjeto = async (atividade: Omit<AtividadeProjeto, "id">) => {
+  try {
+    if (!auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const docRef = await addDoc(collection(db, "atividades_projetos"), {
+      ...atividade,
+      dataCriacao: Timestamp.fromDate(atividade.dataCriacao),
+      dataConclusao: atividade.dataConclusao ? Timestamp.fromDate(atividade.dataConclusao) : null,
+      registradoPor: auth.currentUser.displayName || auth.currentUser.email || "Usuário",
+    })
+    return docRef.id
+  } catch (error) {
+    console.error("Erro ao adicionar atividade do projeto:", error)
+    throw error
+  }
+}
+
+export const obterAtividadesProjeto = async (projetoId: string): Promise<AtividadeProjeto[]> => {
+  try {
+    if (!auth.currentUser) {
+      console.log("[v0] Usuário não autenticado, retornando array vazio")
+      return []
+    }
+
+    const q = query(
+      collection(db, "atividades_projetos"),
+      orderBy("dataCriacao", "asc")
+    )
+    const querySnapshot = await getDocs(q)
+    const atividades = querySnapshot.docs
+      .map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        dataCriacao: doc.data().dataCriacao.toDate(),
+        dataConclusao: doc.data().dataConclusao ? doc.data().dataConclusao.toDate() : undefined,
+      })) as AtividadeProjeto[]
+    
+    return atividades.filter(atividade => atividade.projetoId === projetoId)
+  } catch (error) {
+    console.error("Erro ao obter atividades do projeto:", error)
+    return []
+  }
+}
+
+export const atualizarAtividadeProjeto = async (atividadeId: string, concluida: boolean) => {
+  try {
+    if (!auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const updateData: any = { 
+      concluida,
+      dataConclusao: concluida ? Timestamp.fromDate(new Date()) : null
+    }
+
+    const docRef = doc(db, "atividades_projetos", atividadeId)
+    await updateDoc(docRef, updateData)
+  } catch (error) {
+    console.error("Erro ao atualizar atividade do projeto:", error)
     throw error
   }
 }

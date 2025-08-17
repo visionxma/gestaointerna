@@ -62,3 +62,14 @@ export interface Projeto {
   observacoes?: string
   registradoPor?: string
 }
+
+export interface AtividadeProjeto {
+  id: string
+  projetoId: string
+  titulo: string
+  descricao?: string
+  concluida: boolean
+  dataCriacao: Date
+  dataConclusao?: Date
+  registradoPor?: string
+}
