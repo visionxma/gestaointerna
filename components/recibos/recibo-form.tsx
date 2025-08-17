@@ -46,13 +46,20 @@ export function ReciboForm({ onReciboAdicionado }: ReciboFormProps) {
   useEffect(() => {
     const carregarClientes = async () => {
       try {
-        const clientesData = await obterClientes()
-        setClientes(clientesData)
+        // Verificar se a função existe
+        if (typeof obterClientes === 'function') {
+          const clientesData = await obterClientes()
+          setClientes(clientesData)
+        } else {
+          console.error('obterClientes não é uma função')
+          setClientes([])
+        }
       } catch (error) {
         console.error('Erro ao carregar clientes:', error)
+        setClientes([])
         toast({
-          title: "Erro",
-          description: "Erro ao carregar clientes.",
+          title: "Aviso",
+          description: "Não foi possível carregar clientes existentes.",
           variant: "destructive",
         })
       }
@@ -140,6 +147,17 @@ export function ReciboForm({ onReciboAdicionado }: ReciboFormProps) {
     console.log('Iniciando criação do recibo...')
     console.log('Dados do formulário:', formData)
     
+    // Verificar se a função adicionarRecibo existe
+    if (typeof adicionarRecibo !== 'function') {
+      console.error('adicionarRecibo não é uma função ou não foi importada corretamente')
+      toast({
+        title: "Erro de configuração",
+        description: "Função adicionarRecibo não encontrada. Verifique a importação do banco de dados.",
+        variant: "destructive",
+      })
+      return
+    }
+    
     if (!validarFormulario()) {
       return
     }
@@ -168,7 +186,9 @@ export function ReciboForm({ onReciboAdicionado }: ReciboFormProps) {
 
       console.log('Dados que serão enviados para adicionarRecibo:', reciboData)
 
-      await adicionarRecibo(reciboData)
+      // Tentativa de salvar o recibo
+      const resultado = await adicionarRecibo(reciboData)
+      console.log('Resultado da operação:', resultado)
 
       console.log('Recibo criado com sucesso!')
 
@@ -193,7 +213,7 @@ export function ReciboForm({ onReciboAdicionado }: ReciboFormProps) {
       })
 
       // Chama a função callback
-      if (onReciboAdicionado) {
+      if (typeof onReciboAdicionado === 'function') {
         onReciboAdicionado()
       }
 
@@ -201,7 +221,7 @@ export function ReciboForm({ onReciboAdicionado }: ReciboFormProps) {
       console.error('Erro ao criar recibo:', error)
       toast({
         title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao criar recibo. Tente novamente.",
+        description: error instanceof Error ? error.message : "Erro ao criar recibo. Verifique a configuração do banco de dados.",
         variant: "destructive",
       })
     } finally {
