@@ -78,9 +78,16 @@ export function Sidebar() {
 
           {/* Logo e título */}
           <div className="relative flex flex-col items-center justify-center px-4 py-6 border-b border-gray-200 z-10">
-            <div className="w-32 h-12 relative mb-2">
-              <Image src="/public/images/visionx-logo.png" alt="VisionX Logo" fill className="object-contain" priority />
-            </div>
+<div className="relative w-40 h-40">
+  <Image
+    src="/images/visionx-logo.png"
+    alt="VisionX Logo"
+    fill
+    className="object-contain"
+    priority
+  />
+</div>
+
             <div className="text-center">
               <h1 className="text-sm font-semibold text-gray-900">Sistema de Gestão</h1>
               <p className="text-xs text-gray-600">Interno VisionX</p>
