@@ -48,3 +48,17 @@ export interface Senha {
   dataRegistro: Date
   registradoPor?: string
 }
+
+export interface Projeto {
+  id: string
+  nome: string
+  descricao: string
+  clienteId?: string
+  status: 'prospeccao' | 'desenvolvimento' | 'entregue'
+  valor?: number
+  dataInicio: Date
+  dataPrevisao?: Date
+  dataEntrega?: Date
+  observacoes?: string
+  registradoPor?: string
+}
