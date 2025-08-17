@@ -1,14 +1,12 @@
+// ========== SIDEBAR COMPONENT (atualizado) ==========
 "use client"
 
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Users, TrendingUp, TrendingDown, Menu, X, LogOut, Shield, FolderKanban, FileText, Receipt } from "lucide-react"
+import { LayoutDashboard, Users, TrendingUp, TrendingDown, Menu, X, Shield, FolderKanban, FileText, Receipt } from "lucide-react"
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { useAuth } from "@/contexts/auth-context"
-import { fazerLogout } from "@/lib/auth"
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -36,8 +34,6 @@ const motivationalMessages = [
 
 export function Sidebar() {
   const pathname = usePathname()
-  const router = useRouter()
-  const { user } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [messageIndex, setMessageIndex] = useState(0)
 
@@ -47,11 +43,6 @@ export function Sidebar() {
     }, 5000) // alterna a cada 5 segundos
     return () => clearInterval(interval)
   }, [])
-
-  const handleLogout = async () => {
-    const { error } = await fazerLogout()
-    if (!error) router.push("/login")
-  }
 
   return (
     <>
@@ -79,11 +70,17 @@ export function Sidebar() {
 
           {/* Logo e título */}
           <div className="relative flex flex-col items-center justify-center px-4 py-6 border-b border-gray-200 z-10">
-<Image src="./images/visionx-logo.png" alt="VisionX Logo"
-  width={120} height={120}
-  className="object-contain mb-3" // <-- espaço abaixo
-  priority
-/>
+            <Image 
+              src="/images/visionx-logo.png" 
+              alt="VisionX Logo"
+              width={120} 
+              height={120}
+              className="object-contain mb-3"
+              priority
+              onError={(e) => {
+                e.target.style.display = 'none'
+              }}
+            />
             <div className="text-center">
               <h1 className="text-sm font-semibold text-gray-900">Sistema de Gestão</h1>
               <p className="text-xs text-gray-600">Interno VisionX</p>
@@ -102,7 +99,7 @@ export function Sidebar() {
                   className={cn(
                     "flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-150",
                     isActive
-                      ? "bg-primary text-primary-foreground shadow-sm"
+                      ? "bg-black text-white"
                       : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                   )}
                 >
@@ -113,29 +110,12 @@ export function Sidebar() {
             })}
           </nav>
 
-{/* Rodapé com usuário, email completo e logout */}
-<div className="relative px-4 py-4 border-t border-gray-200 z-10 bg-white/70 backdrop-blur-md">
-  {/* Email completo */}
-  <div className="mb-1 text-xs text-gray-500 break-words">
-    Logado como: <span className="font-medium text-gray-700">{user?.email || "Usuário"}</span>
-  </div>
-
-  {/* Mensagem motivacional */}
-  <div className="mb-2 text-xs text-gray-600 italic">
-    {motivationalMessages[messageIndex]}
-  </div>
-
-  {/* Botão de logout */}
-  <Button
-    variant="outline"
-    size="sm"
-    onClick={handleLogout}
-    className="w-full flex items-center justify-center rounded-lg border-gray-300 hover:bg-gray-50"
-  >
-    <LogOut className="mr-2 h-4 w-4" />
-    Sair
-  </Button>
-</div>
+          {/* Rodapé apenas com mensagem motivacional */}
+          <div className="relative px-4 py-4 border-t border-gray-200 z-10 bg-white/70 backdrop-blur-md">
+            <div className="text-xs text-gray-600 italic text-center">
+              {motivationalMessages[messageIndex]}
+            </div>
+          </div>
 
         </div>
       </div>

@@ -1,10 +1,22 @@
+// ========== USER HEADER COMPONENT (atualizado) ==========
 "use client"
 
 import { useAuth } from "@/contexts/auth-context"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Clock, User } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Clock, User, LogOut, ChevronDown } from "lucide-react"
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { fazerLogout } from "@/lib/auth"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface UserHeaderProps {
   showWelcome?: boolean
@@ -14,6 +26,7 @@ interface UserHeaderProps {
 
 export function UserHeader({ showWelcome = true, variant = 'default', className }: UserHeaderProps) {
   const { user } = useAuth()
+  const router = useRouter()
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0)
   const [fade, setFade] = useState(false)
 
@@ -64,6 +77,11 @@ export function UserHeader({ showWelcome = true, variant = 'default', className 
     "Transforme desafios em oportunidades."
   ]
 
+  const handleLogout = async () => {
+    const { error } = await fazerLogout()
+    if (!error) router.push("/login")
+  }
+
   useEffect(() => {
     const interval = setInterval(() => {
       setFade(true)
@@ -84,10 +102,27 @@ export function UserHeader({ showWelcome = true, variant = 'default', className 
             {getInitials(displayName)}
           </AvatarFallback>
         </Avatar>
-        <div className="flex flex-col">
+        <div className="flex flex-col flex-1 min-w-0">
           <span className="text-sm font-medium text-gray-900">{firstName}</span>
           <span className="text-xs text-muted-foreground truncate max-w-xs">{user.email}</span>
         </div>
+        
+        {/* Menu dropdown com logout */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
+              <LogOut className="mr-2 h-4 w-4" />
+              Sair da conta
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     )
   }
@@ -134,11 +169,25 @@ export function UserHeader({ showWelcome = true, variant = 'default', className 
           </div>
         </div>
 
-        <div className="hidden sm:flex flex-col items-end text-right min-w-0">
-          <div className="text-sm text-muted-foreground mb-1">Email</div>
-          <div className="text-sm font-medium text-gray-700 truncate max-w-xs">
-            {user.email}
+        <div className="flex items-center gap-4">
+          {/* Email info */}
+          <div className="hidden sm:flex flex-col items-end text-right min-w-0">
+            <div className="text-sm text-muted-foreground mb-1">Email</div>
+            <div className="text-sm font-medium text-gray-700 truncate max-w-xs">
+              {user.email}
+            </div>
           </div>
+
+          {/* Botão de logout */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleLogout}
+            className="flex items-center gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline">Sair</span>
+          </Button>
         </div>
       </div>
 
