@@ -27,15 +27,23 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+
     const unsubscribe = observarEstadoAuth((user) => {
+      console.log('Auth state changed:', user ? 'logged in' : 'logged out')
       setUser(user)
       setLoading(false)
     })
 
     return unsubscribe
-  }, [])
+  }, [mounted])
 
   return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>
 }

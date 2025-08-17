@@ -1,6 +1,5 @@
 import { initializeApp } from "firebase/app"
 import { getFirestore } from "firebase/firestore"
-import { getAnalytics } from "firebase/analytics"
 import { getAuth } from "firebase/auth"
 import { getStorage } from "firebase/storage"
 
@@ -20,8 +19,4 @@ export const db = getFirestore(app)
 export const auth = getAuth(app)
 export const storage = getStorage(app)
 
-let analytics: any = null
-if (typeof window !== "undefined") {
-  analytics = getAnalytics(app)
-}
-export { analytics }
+// Analytics removido para evitar problemas em produção estática

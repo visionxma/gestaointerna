@@ -23,6 +23,14 @@ export const adicionarCliente = async (cliente: Omit<Cliente, "id">) => {
 
 export const obterClientes = async (): Promise<Cliente[]> => {
   try {
+    // Aguarda a inicialização do auth
+    await new Promise((resolve) => {
+      const unsubscribe = auth.onAuthStateChanged((user) => {
+        unsubscribe()
+        resolve(user)
+      })
+    })
+
     if (!auth.currentUser) {
       console.log("[v0] Usuário não autenticado, retornando array vazio")
       return []
@@ -62,6 +70,14 @@ export const adicionarReceita = async (receita: Omit<Receita, "id">) => {
 
 export const obterReceitas = async (): Promise<Receita[]> => {
   try {
+    // Aguarda a inicialização do auth
+    await new Promise((resolve) => {
+      const unsubscribe = auth.onAuthStateChanged((user) => {
+        unsubscribe()
+        resolve(user)
+      })
+    })
+
     if (!auth.currentUser) {
       console.log("[v0] Usuário não autenticado, retornando array vazio")
       return []
@@ -101,6 +117,14 @@ export const adicionarDespesa = async (despesa: Omit<Despesa, "id">) => {
 
 export const obterDespesas = async (): Promise<Despesa[]> => {
   try {
+    // Aguarda a inicialização do auth
+    await new Promise((resolve) => {
+      const unsubscribe = auth.onAuthStateChanged((user) => {
+        unsubscribe()
+        resolve(user)
+      })
+    })
+
     if (!auth.currentUser) {
       console.log("[v0] Usuário não autenticado, retornando array vazio")
       return []

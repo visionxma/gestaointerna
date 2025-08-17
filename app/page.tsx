@@ -16,21 +16,30 @@ export default function HomePage() {
   const [receitas, setReceitas] = useState<Receita[]>([])
   const [despesas, setDespesas] = useState<Despesa[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const carregarDados = async () => {
       try {
+        setError(null)
         const [clientesData, receitasData, despesasData] = await Promise.all([
           obterClientes(),
           obterReceitas(),
           obterDespesas(),
         ])
 
+        console.log('Dados carregados:', { 
+          clientes: clientesData.length, 
+          receitas: receitasData.length, 
+          despesas: despesasData.length 
+        })
+
         setClientes(clientesData)
         setReceitas(receitasData)
         setDespesas(despesasData)
       } catch (error) {
         console.error("Erro ao carregar dados:", error)
+        setError("Erro ao carregar dados do dashboard")
       } finally {
         setLoading(false)
       }
@@ -77,6 +86,23 @@ export default function HomePage() {
     )
   }
 
+  if (error) {
+    return (
+      <ProtectedRoute>
+        <div className="flex h-screen bg-background">
+          <Sidebar />
+          <main className="flex-1 lg:ml-64 p-8">
+            <div className="max-w-7xl mx-auto">
+              <div className="flex items-center justify-center h-64">
+                <div className="text-red-600">{error}</div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </ProtectedRoute>
+    )
+  }
+
   return (
     <ProtectedRoute>
       <div className="flex h-screen bg-background">
@@ -88,6 +114,9 @@ export default function HomePage() {
             <div>
               <h1 className="text-3xl font-bold">Dashboard VisionX</h1>
               <p className="text-muted-foreground">Sistema de Gestão Interna - Visão geral dos projetos e finanças</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Debug: {clientes.length} clientes, {receitas.length} receitas, {despesas.length} despesas
+              </p>
             </div>
 
             <StatsCards data={dashboardData} />

@@ -9,14 +9,19 @@ import { Loader2 } from "lucide-react"
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    if (!loading && !user) {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (mounted && !loading && !user) {
       router.replace("/login") // replace evita loop no histórico
     }
-  }, [user, loading, router])
+  }, [user, loading, router, mounted])
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-6">
         <div className="flex flex-col items-center gap-3">

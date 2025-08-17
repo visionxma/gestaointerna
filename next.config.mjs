@@ -9,7 +9,11 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  output: 'export',
+  // Removido output: 'export' para permitir SSR e melhor compatibilidade com Firebase
+  trailingSlash: true,
+  env: {
+    CUSTOM_KEY: 'my-value',
+  },
 }
 
 export default nextConfig
