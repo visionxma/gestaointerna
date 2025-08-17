@@ -80,7 +80,7 @@ export function Sidebar() {
           <div className="relative flex flex-col items-center justify-center px-4 py-6 border-b border-gray-200 z-10">
 <Image src="./images/visionx-logo.png" alt="VisionX Logo"
   width={120} height={120}
-  className="object-contain mb-6" // <-- espaço abaixo
+  className="object-contain mb-3" // <-- espaço abaixo
   priority
 />
             <div className="text-center">
