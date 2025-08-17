@@ -174,11 +174,13 @@ export function OrcamentoForm({ onOrcamentoAdicionado }: OrcamentoFormProps) {
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    })
-  }
+  const { name, value, type } = e.target
+  setFormData({
+    ...formData,
+    [name]: type === "number" ? Number(value) : value,
+  })
+}
+
 
   return (
     <Card className="relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 shadow-sm">
