@@ -1,6 +1,6 @@
 import { collection, addDoc, getDocs, query, orderBy, Timestamp } from "firebase/firestore"
 import { db, auth } from "./firebase"
-import type { Cliente, Receita, Despesa } from "./types"
+import type { Cliente, Receita, Despesa, Senha } from "./types"
 
 // Clientes
 export const adicionarCliente = async (cliente: Omit<Cliente, "id">) => {
@@ -115,6 +115,45 @@ export const obterDespesas = async (): Promise<Despesa[]> => {
     })) as Despesa[]
   } catch (error) {
     console.error("Erro ao obter despesas:", error)
+    return []
+  }
+}
+
+// Senhas
+export const adicionarSenha = async (senha: Omit<Senha, "id">) => {
+  try {
+    if (!auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const docRef = await addDoc(collection(db, "senhas"), {
+      ...senha,
+      dataRegistro: Timestamp.fromDate(senha.dataRegistro),
+      registradoPor: auth.currentUser.displayName || auth.currentUser.email || "Usuário",
+    })
+    return docRef.id
+  } catch (error) {
+    console.error("Erro ao adicionar senha:", error)
+    throw error
+  }
+}
+
+export const obterSenhas = async (): Promise<Senha[]> => {
+  try {
+    if (!auth.currentUser) {
+      console.log("[v0] Usuário não autenticado, retornando array vazio")
+      return []
+    }
+
+    const q = query(collection(db, "senhas"), orderBy("dataRegistro", "desc"))
+    const querySnapshot = await getDocs(q)
+    return querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      dataRegistro: doc.data().dataRegistro.toDate(),
+    })) as Senha[]
+  } catch (error) {
+    console.error("Erro ao obter senhas:", error)
     return []
   }
 }

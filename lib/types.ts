@@ -36,3 +36,15 @@ export interface DashboardData {
   receitasMes: number
   despesasMes: number
 }
+
+export interface Senha {
+  id: string
+  titulo: string
+  categoria: string
+  usuario: string
+  senha: string
+  url?: string
+  observacoes?: string
+  dataRegistro: Date
+  registradoPor?: string
+}
