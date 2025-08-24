@@ -19,6 +19,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link
+          rel="icon"
+          type="image/png"
+          href="https://i.imgur.com/54c5G3Q.png"
+        />
         <style>{`
 html {
   font-family: ${GeistSans.style.fontFamily};
@@ -33,3 +38,4 @@ html {
     </html>
   )
 }
+
