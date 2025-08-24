@@ -71,7 +71,7 @@ export function Sidebar() {
           {/* Logo e título */}
           <div className="relative flex flex-col items-center justify-center px-4 py-6 border-b border-gray-200 z-10">
             <Image 
-              src="/images/visionx-logo.png" 
+              src="https://i.imgur.com/nVflzaY.png" 
               alt="VisionX Logo"
               width={120} 
               height={120}
