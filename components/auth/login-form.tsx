@@ -46,7 +46,7 @@ export function LoginForm() {
         <CardHeader className="relative text-center z-10">
           <div className="flex justify-center mb-4">
             <Image
-              src="./images/visionx-logo.png"
+              src="https://i.imgur.com/nVflzaY.png"
               alt="VisionX Logo"
               width={200}
               height={60}
