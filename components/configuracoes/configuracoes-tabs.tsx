@@ -3,7 +3,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ContaInfo } from "./conta-info"
 import { SuporteInfo } from "./suporte-info"
-import { SistemaInfo } from "./sistema-info"
+import SistemaInfo from "./sistema-info"
 import { User, HelpCircle, Settings } from "lucide-react"
 
 export function ConfiguracoesTabs() {
