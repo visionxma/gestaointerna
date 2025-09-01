@@ -58,7 +58,7 @@ export function ProjetoForm({ onProjetoAdicionado }: ProjetoFormProps) {
       }
 
       if (formData.valor) {
-        projetoData.valor = Number.parseFloat(formData.valor)
+        projetoData.valor = parseFloat(formData.valor.replace(',', '.'))
       }
 
       if (formData.dataPrevisao) {

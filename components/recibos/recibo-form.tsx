@@ -121,6 +121,8 @@ export function ReciboForm({ onReciboAdicionado }: ReciboFormProps) {
     }
 
     if (!formData.valorPago || Number.parseFloat(formData.valorPago) <= 0) {
+    const valorNumerico = parseFloat(formData.valorPago.replace(',', '.'))
+    if (!formData.valorPago || isNaN(valorNumerico) || valorNumerico <= 0) {
       toast({
         title: "Valor inválido",
         description: "Valor pago deve ser maior que zero.",
@@ -175,7 +177,7 @@ export function ReciboForm({ onReciboAdicionado }: ReciboFormProps) {
         emailCliente: formData.emailCliente.trim() || undefined,
         telefoneCliente: formData.telefoneCliente.trim() || undefined,
         descricaoServico: formData.descricaoServico.trim(),
-        valorPago: Number.parseFloat(formData.valorPago),
+        valorPago: parseFloat(formData.valorPago.replace(',', '.')),
         formaPagamento: formData.formaPagamento,
         dataPagamento: new Date(formData.dataPagamento),
         dataVencimento: formData.dataVencimento ? new Date(formData.dataVencimento) : undefined,

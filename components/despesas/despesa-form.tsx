@@ -47,7 +47,7 @@ export function DespesaForm({ onDespesaAdicionada }: DespesaFormProps) {
     try {
       await adicionarDespesa({
         descricao: formData.descricao,
-        valor: Number.parseFloat(formData.valor),
+        valor: parseFloat(formData.valor.replace(',', '.')),
         categoria: formData.categoria,
         data: new Date(formData.data),
       })
