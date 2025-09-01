@@ -8,9 +8,10 @@ import type { DashboardData } from "@/lib/types"
 interface StatsCardsProps {
   data: DashboardData
   className?: string
+  period?: string
 }
 
-export function StatsCards({ data, className }: StatsCardsProps) {
+export function StatsCards({ data, className, period }: StatsCardsProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -154,7 +155,7 @@ export function StatsCards({ data, className }: StatsCardsProps) {
                 </Badge>
                 
                 <span className="text-xs text-muted-foreground">
-                  vs mês anterior
+                  no período
                 </span>
               </div>
             )}
@@ -165,7 +166,7 @@ export function StatsCards({ data, className }: StatsCardsProps) {
                   Estável
                 </Badge>
                 <span className="text-xs text-muted-foreground">
-                  vs mês anterior
+                  no período
                 </span>
               </div>
             )}

@@ -12,11 +12,30 @@ interface MonthlyOverviewProps {
   receitas: Receita[]
   despesas: Despesa[]
   className?: string
-  months?: number
+  period?: string
 }
 
-export function MonthlyOverview({ receitas, despesas, className, months = 6 }: MonthlyOverviewProps) {
+export function MonthlyOverview({ receitas, despesas, className, period = '6m' }: MonthlyOverviewProps) {
   const [viewType, setViewType] = useState<'bar' | 'combined'>('combined')
+  
+  // Determinar número de meses baseado no período
+  const getMonthsFromPeriod = (period: string) => {
+    switch (period) {
+      case '7d':
+      case '30d':
+        return 3 // Mostrar últimos 3 meses para contexto
+      case '3m':
+        return 3
+      case '6m':
+        return 6
+      case '1y':
+        return 12
+      default:
+        return 6
+    }
+  }
+  
+  const months = getMonthsFromPeriod(period)
   
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -132,7 +151,9 @@ export function MonthlyOverview({ receitas, despesas, className, months = 6 }: M
             </div>
             <div>
               <CardTitle className="text-gray-900">Visão Geral Mensal</CardTitle>
-              <p className="text-sm text-muted-foreground">Últimos {months} meses</p>
+              <p className="text-sm text-muted-foreground">
+                {period === 'all' ? 'Todos os meses' : `Últimos ${months} meses`}
+              </p>
             </div>
           </div>
           

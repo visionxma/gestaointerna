@@ -13,9 +13,10 @@ interface QuickContactProps {
   maxItems?: number
   className?: string
   variant?: 'default' | 'compact'
+  period?: string
 }
 
-export function QuickContact({ clientes, maxItems = 3, className, variant = 'default' }: QuickContactProps) {
+export function QuickContact({ clientes, maxItems = 3, className, variant = 'default', period }: QuickContactProps) {
   const formatDate = (date: Date | string) => {
     const dateObj = typeof date === 'string' ? new Date(date) : date
     const now = new Date()

@@ -12,9 +12,10 @@ interface RecentActivitiesProps {
   clientes: Cliente[]
   maxItems?: number
   className?: string
+  period?: string
 }
 
-export function RecentActivities({ receitas, despesas, clientes, maxItems = 5, className }: RecentActivitiesProps) {
+export function RecentActivities({ receitas, despesas, clientes, maxItems = 5, className, period }: RecentActivitiesProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
