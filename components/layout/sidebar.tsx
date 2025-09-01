@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils"
 import { LayoutDashboard, Users, TrendingUp, TrendingDown, Menu, X, Shield, FolderKanban, FileText, Receipt } from "lucide-react"
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Settings } from "lucide-react"
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -18,7 +17,6 @@ const navigation = [
   { name: "Despesas", href: "/despesas", icon: TrendingDown },
   { name: "Recibos", href: "/recibos", icon: Receipt },
   { name: "Senhas", href: "/senhas", icon: Shield },
-  { name: "Configurações", href: "/configuracoes", icon: Settings },
 ]
 
 const motivationalMessages = [

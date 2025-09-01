@@ -68,35 +68,29 @@ export default function HomePage() {
     if (period === 'all') return data
     
     const now = new Date()
-    now.setHours(23, 59, 59, 999) // Fim do dia atual
     const startDate = new Date()
     
     switch (period) {
       case '7d':
         startDate.setDate(now.getDate() - 7)
-        startDate.setHours(0, 0, 0, 0)
         break
       case '30d':
         startDate.setDate(now.getDate() - 30)
-        startDate.setHours(0, 0, 0, 0)
         break
       case '3m':
         startDate.setMonth(now.getMonth() - 3)
-        startDate.setHours(0, 0, 0, 0)
         break
       case '6m':
         startDate.setMonth(now.getMonth() - 6)
-        startDate.setHours(0, 0, 0, 0)
         break
       case '1y':
         startDate.setFullYear(now.getFullYear() - 1)
-        startDate.setHours(0, 0, 0, 0)
         break
     }
     
     return data.filter((item) => {
       const itemDate = typeof item.data === 'string' ? new Date(item.data) : item.data
-      return itemDate >= startDate && itemDate <= now
+      return itemDate >= startDate
     })
   }
 
@@ -114,28 +108,23 @@ export default function HomePage() {
     switch (periodFilter) {
       case '7d':
         startDate.setDate(now.getDate() - 7)
-        startDate.setHours(0, 0, 0, 0)
         break
       case '30d':
         startDate.setDate(now.getDate() - 30)
-        startDate.setHours(0, 0, 0, 0)
         break
       case '3m':
         startDate.setMonth(now.getMonth() - 3)
-        startDate.setHours(0, 0, 0, 0)
         break
       case '6m':
         startDate.setMonth(now.getMonth() - 6)
-        startDate.setHours(0, 0, 0, 0)
         break
       case '1y':
         startDate.setFullYear(now.getFullYear() - 1)
-        startDate.setHours(0, 0, 0, 0)
         break
     }
     
     const clienteDate = typeof cliente.dataRegistro === 'string' ? new Date(cliente.dataRegistro) : cliente.dataRegistro
-    return clienteDate >= startDate && clienteDate <= now
+    return clienteDate >= startDate
   })
 
   const dashboardData: DashboardData = {

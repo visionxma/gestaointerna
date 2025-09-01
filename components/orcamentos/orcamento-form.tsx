@@ -77,13 +77,7 @@ export function OrcamentoForm({ onOrcamentoAdicionado }: OrcamentoFormProps) {
       if (item.id === id) {
         const itemAtualizado = { ...item, [campo]: valor }
         if (campo === 'quantidade' || campo === 'valorUnitario') {
-          const quantidade = typeof itemAtualizado.quantidade === 'string' 
-            ? parseFloat(itemAtualizado.quantidade.replace(',', '.')) || 0
-            : itemAtualizado.quantidade || 0
-          const valorUnitario = typeof itemAtualizado.valorUnitario === 'string'
-            ? parseFloat(itemAtualizado.valorUnitario.replace(',', '.')) || 0
-            : itemAtualizado.valorUnitario || 0
-          itemAtualizado.valorTotal = quantidade * valorUnitario
+          itemAtualizado.valorTotal = itemAtualizado.quantidade * itemAtualizado.valorUnitario
         }
         return itemAtualizado
       }
@@ -180,12 +174,12 @@ export function OrcamentoForm({ onOrcamentoAdicionado }: OrcamentoFormProps) {
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target
-    setFormData({
-      ...formData,
-      [name]: type === "number" ? parseFloat(value.replace(',', '.')) || 0 : value,
-    })
-  }
+  const { name, value, type } = e.target
+  setFormData({
+    ...formData,
+    [name]: type === "number" ? Number(value) : value,
+  })
+}
 
 
   return (

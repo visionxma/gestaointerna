@@ -57,29 +57,24 @@ export function MonthlyOverview({ receitas, despesas, className, period = '6m' }
   const monthlyData = Array.from({ length: months }, (_, i) => {
     const date = new Date()
     date.setMonth(date.getMonth() - i)
-    date.setDate(1) // Primeiro dia do mês
-    date.setHours(0, 0, 0, 0)
     const month = date.toLocaleString("pt-BR", { month: "short" })
     const fullMonth = date.toLocaleString("pt-BR", { month: "long" })
     const year = date.getFullYear()
     const monthKey = `${year}-${String(date.getMonth() + 1).padStart(2, "0")}`
 
-    // Criar data de fim do mês para comparação
-    const endOfMonth = new Date(date)
-    endOfMonth.setMonth(endOfMonth.getMonth() + 1)
-    endOfMonth.setDate(0) // Último dia do mês
-    endOfMonth.setHours(23, 59, 59, 999)
     const receitasMes = receitas
       .filter((r) => {
         const rDate = typeof r.data === 'string' ? new Date(r.data) : r.data
-        return rDate >= date && rDate <= endOfMonth
+        const rMonthKey = `${rDate.getFullYear()}-${String(rDate.getMonth() + 1).padStart(2, "0")}`
+        return rMonthKey === monthKey
       })
       .reduce((sum, r) => sum + r.valor, 0)
 
     const despesasMes = despesas
       .filter((d) => {
         const dDate = typeof d.data === 'string' ? new Date(d.data) : d.data
-        return dDate >= date && dDate <= endOfMonth
+        const dMonthKey = `${dDate.getFullYear()}-${String(dDate.getMonth() + 1).padStart(2, "0")}`
+        return dMonthKey === monthKey
       })
       .reduce((sum, d) => sum + d.valor, 0)
 

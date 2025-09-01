@@ -55,7 +55,7 @@ export function ReceitaForm({ onReceitaAdicionada }: ReceitaFormProps) {
     try {
       const receitaData: any = {
         descricao: formData.descricao,
-        valor: parseFloat(formData.valor.replace(',', '.')),
+        valor: Number.parseFloat(formData.valor),
         categoria: formData.categoria,
         data: new Date(formData.data),
       }
