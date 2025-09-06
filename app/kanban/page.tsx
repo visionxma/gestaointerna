@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useEffect, useState, useCallback } from "react"
-import { Plus, Calendar, User, AlertCircle, Edit, Trash2, MoreVertical } from "lucide-react"
+import { Plus, Calendar, User, AlertCircle, Edit, Trash2, MoreVertical, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -26,16 +26,30 @@ import {
   adicionarTask,
   moverTask,
   atualizarTask,
+  atualizarBoard,
+  atualizarColumn,
   excluirTask,
   excluirBoard,
+  excluirColumn,
 } from "@/lib/database"
 import type { KanbanBoard, KanbanColumn, KanbanTask } from "@/lib/types"
 
 const prioridadeCores = {
-  baixa: "bg-green-100 text-green-800",
-  media: "bg-yellow-100 text-yellow-800",
-  alta: "bg-red-100 text-red-800",
+  baixa: "bg-green-100 text-green-800 border-green-200",
+  media: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  alta: "bg-red-100 text-red-800 border-red-200",
 }
+
+const coresDisponiveis = [
+  { nome: "Azul", valor: "#3b82f6", texto: "#ffffff" },
+  { nome: "Verde", valor: "#10b981", texto: "#ffffff" },
+  { nome: "Vermelho", valor: "#ef4444", texto: "#ffffff" },
+  { nome: "Amarelo", valor: "#f59e0b", texto: "#000000" },
+  { nome: "Roxo", valor: "#8b5cf6", texto: "#ffffff" },
+  { nome: "Rosa", valor: "#ec4899", texto: "#ffffff" },
+  { nome: "Cinza", valor: "#6b7280", texto: "#ffffff" },
+  { nome: "Laranja", valor: "#f97316", texto: "#ffffff" },
+]
 
 export default function KanbanPage() {
   const [boards, setBoards] = useState<KanbanBoard[]>([])
@@ -52,24 +66,34 @@ export default function KanbanPage() {
   const [showNewBoard, setShowNewBoard] = useState(false)
   const [showNewTask, setShowNewTask] = useState(false)
   const [showEditTask, setShowEditTask] = useState(false)
+  const [showEditColumn, setShowEditColumn] = useState(false)
+  const [showBoardSettings, setShowBoardSettings] = useState(false)
   const [selectedColumn, setSelectedColumn] = useState<string>("")
   const [editingTask, setEditingTask] = useState<KanbanTask | null>(null)
+  const [editingColumn, setEditingColumn] = useState<KanbanColumn | null>(null)
 
   // Estados para modais de confirmação
   const [showDeleteBoardConfirm, setShowDeleteBoardConfirm] = useState(false)
   const [showDeleteTaskConfirm, setShowDeleteTaskConfirm] = useState(false)
+  const [showDeleteColumnConfirm, setShowDeleteColumnConfirm] = useState(false)
   const [boardToDelete, setBoardToDelete] = useState<KanbanBoard | null>(null)
   const [taskToDelete, setTaskToDelete] = useState<KanbanTask | null>(null)
+  const [columnToDelete, setColumnToDelete] = useState<KanbanColumn | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
   // Estados para formulários
-  const [newBoard, setNewBoard] = useState({ nome: "", descricao: "" })
+  const [newBoard, setNewBoard] = useState({ nome: "", descricao: "", corFundo: "#f8fafc" })
   const [newTask, setNewTask] = useState({
     titulo: "",
     descricao: "",
     responsavel: "",
     prioridade: "media" as const,
     prazo: "",
+  })
+  const [editColumnData, setEditColumnData] = useState({
+    nome: "",
+    cor: "#3b82f6",
+    corTexto: "#ffffff",
   })
 
   const carregarDados = useCallback(async () => {
@@ -123,14 +147,15 @@ export default function KanbanPage() {
       const boardId = await adicionarBoard({
         nome: newBoard.nome,
         descricao: newBoard.descricao,
+        corFundo: newBoard.corFundo,
         dataCriacao: new Date(),
       })
 
-      // Criar colunas padrão
+      // Criar colunas padrão com cores personalizadas
       const colunasDefault = [
-        { nome: "A Fazer", ordem: 0, cor: "#ef4444" },
-        { nome: "Em Andamento", ordem: 1, cor: "#f59e0b" },
-        { nome: "Concluído", ordem: 2, cor: "#10b981" },
+        { nome: "A Fazer", ordem: 0, cor: "#ef4444", corTexto: "#ffffff" },
+        { nome: "Em Andamento", ordem: 1, cor: "#f59e0b", corTexto: "#ffffff" },
+        { nome: "Concluído", ordem: 2, cor: "#10b981", corTexto: "#ffffff" },
       ]
 
       console.log("[v0] Criando colunas padrão...")
@@ -140,10 +165,11 @@ export default function KanbanPage() {
           nome: coluna.nome,
           ordem: coluna.ordem,
           cor: coluna.cor,
+          corTexto: coluna.corTexto,
         })
       }
 
-      setNewBoard({ nome: "", descricao: "" })
+      setNewBoard({ nome: "", descricao: "", corFundo: "#f8fafc" })
       setShowNewBoard(false)
       await carregarDados()
       console.log("[v0] Board criado com sucesso")
@@ -152,34 +178,78 @@ export default function KanbanPage() {
     }
   }
 
-  const confirmarExclusaoBoard = (board: KanbanBoard) => {
-    setBoardToDelete(board)
-    setShowDeleteBoardConfirm(true)
+  const abrirEdicaoColumn = (column: KanbanColumn) => {
+    setEditingColumn(column)
+    setEditColumnData({
+      nome: column.nome,
+      cor: column.cor || "#3b82f6",
+      corTexto: column.corTexto || "#ffffff",
+    })
+    setShowEditColumn(true)
   }
 
-  const excluirBoardHandler = async () => {
-    if (!boardToDelete) return
+  const salvarEdicaoColumn = async () => {
+    if (!editingColumn || !editColumnData.nome.trim()) return
+
+    try {
+      console.log("[v0] Editando coluna:", editingColumn.id)
+      await atualizarColumn(editingColumn.id, {
+        nome: editColumnData.nome,
+        cor: editColumnData.cor,
+        corTexto: editColumnData.corTexto,
+        boardId: editingColumn.boardId,
+      })
+
+      setEditingColumn(null)
+      setShowEditColumn(false)
+
+      if (selectedBoard) {
+        await carregarBoardData(selectedBoard.id)
+      }
+      console.log("[v0] Coluna editada com sucesso")
+    } catch (error) {
+      console.error("[v0] Erro ao editar coluna:", error)
+    }
+  }
+
+  const confirmarExclusaoColumn = (column: KanbanColumn) => {
+    setColumnToDelete(column)
+    setShowDeleteColumnConfirm(true)
+  }
+
+  const excluirColumnHandler = async () => {
+    if (!columnToDelete || !selectedBoard) return
 
     try {
       setIsDeleting(true)
-      console.log("[v0] Excluindo board:", boardToDelete.nome)
-      await excluirBoard(boardToDelete.id)
+      console.log("[v0] Excluindo coluna:", columnToDelete.nome)
+      await excluirColumn(columnToDelete.id, selectedBoard.id)
 
-      // Se o board excluído era o selecionado, limpar seleção
-      if (selectedBoard?.id === boardToDelete.id) {
-        setSelectedBoard(null)
-        setColumns([])
-        setTasks([])
-      }
-
-      await carregarDados()
-      setShowDeleteBoardConfirm(false)
-      setBoardToDelete(null)
-      console.log("[v0] Board excluído com sucesso")
+      await carregarBoardData(selectedBoard.id)
+      setShowDeleteColumnConfirm(false)
+      setColumnToDelete(null)
+      console.log("[v0] Coluna excluída com sucesso")
     } catch (error) {
-      console.error("[v0] Erro ao excluir board:", error)
+      console.error("[v0] Erro ao excluir coluna:", error)
     } finally {
       setIsDeleting(false)
+    }
+  }
+
+  const salvarConfiguracaoBoard = async () => {
+    if (!selectedBoard) return
+
+    try {
+      console.log("[v0] Atualizando configurações do board")
+      await atualizarBoard(selectedBoard.id, {
+        corFundo: newBoard.corFundo,
+      })
+
+      setSelectedBoard({ ...selectedBoard, corFundo: newBoard.corFundo })
+      setShowBoardSettings(false)
+      console.log("[v0] Configurações do board atualizadas")
+    } catch (error) {
+      console.error("[v0] Erro ao atualizar board:", error)
     }
   }
 
@@ -359,6 +429,30 @@ export default function KanbanPage() {
 
   const responsaveis = Array.from(new Set(tasks.map((t) => t.responsavel).filter(Boolean)))
 
+  const confirmarExclusaoBoard = (board: KanbanBoard) => {
+    setBoardToDelete(board)
+    setShowDeleteBoardConfirm(true)
+  }
+
+  const excluirBoardHandler = async () => {
+    if (!boardToDelete) return
+
+    try {
+      setIsDeleting(true)
+      console.log("[v0] Excluindo board:", boardToDelete.nome)
+      await excluirBoard(boardToDelete.id)
+
+      setBoards((prevBoards) => prevBoards.filter((board) => board.id !== boardToDelete.id))
+      setShowDeleteBoardConfirm(false)
+      setBoardToDelete(null)
+      console.log("[v0] Board excluído com sucesso")
+    } catch (error) {
+      console.error("[v0] Erro ao excluir board:", error)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   if (loading) {
     return (
       <ProtectedRoute>
@@ -378,25 +472,28 @@ export default function KanbanPage() {
     <ProtectedRoute>
       <div className="flex h-screen bg-background">
         <Sidebar />
-        <main className="flex-1 lg:ml-64 p-4 md:p-8 overflow-auto">
+        <main
+          className="flex-1 lg:ml-64 p-4 md:p-8 overflow-auto transition-colors duration-300"
+          style={{ backgroundColor: selectedBoard?.corFundo || "#f8fafc" }}
+        >
           <div className="max-w-7xl mx-auto space-y-6">
             <UserHeader />
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-bold">Kanban</h1>
-                <p className="text-muted-foreground">Gerencie suas tarefas e projetos</p>
+                <h1 className="text-3xl font-bold text-gray-900">Kanban</h1>
+                <p className="text-gray-600">Gerencie suas tarefas e projetos</p>
               </div>
 
               <div className="flex items-center gap-3">
                 <Dialog open={showNewBoard} onOpenChange={setShowNewBoard}>
                   <DialogTrigger asChild>
-                    <Button>
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg">
                       <Plus className="h-4 w-4 mr-2" />
                       Novo Quadro
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                       <DialogTitle>Criar Novo Quadro</DialogTitle>
                     </DialogHeader>
@@ -408,6 +505,7 @@ export default function KanbanPage() {
                           value={newBoard.nome}
                           onChange={(e) => setNewBoard((prev) => ({ ...prev, nome: e.target.value }))}
                           placeholder="Ex: Projeto Website"
+                          className="mt-1"
                         />
                       </div>
                       <div>
@@ -417,7 +515,24 @@ export default function KanbanPage() {
                           value={newBoard.descricao}
                           onChange={(e) => setNewBoard((prev) => ({ ...prev, descricao: e.target.value }))}
                           placeholder="Descrição do quadro..."
+                          className="mt-1"
                         />
+                      </div>
+                      <div>
+                        <Label htmlFor="corFundo">Cor de Fundo</Label>
+                        <div className="flex gap-2 mt-2">
+                          {["#f8fafc", "#f0f9ff", "#f0fdf4", "#fefce8", "#fef2f2", "#faf5ff"].map((cor) => (
+                            <button
+                              key={cor}
+                              type="button"
+                              className={`w-8 h-8 rounded-full border-2 ${
+                                newBoard.corFundo === cor ? "border-gray-900" : "border-gray-300"
+                              }`}
+                              style={{ backgroundColor: cor }}
+                              onClick={() => setNewBoard((prev) => ({ ...prev, corFundo: cor }))}
+                            />
+                          ))}
+                        </div>
                       </div>
                       <Button onClick={criarBoard} className="w-full">
                         Criar Quadro
@@ -429,16 +544,19 @@ export default function KanbanPage() {
             </div>
 
             {boards.length > 0 && (
-              <div className="flex items-center gap-4">
-                <Label>Quadro:</Label>
+              <div className="flex items-center gap-4 bg-white/80 backdrop-blur-sm rounded-lg p-4 shadow-sm">
+                <Label className="text-gray-700 font-medium">Quadro:</Label>
                 <Select
                   value={selectedBoard?.id || ""}
                   onValueChange={(value) => {
                     const board = boards.find((b) => b.id === value)
                     setSelectedBoard(board || null)
+                    if (board) {
+                      setNewBoard((prev) => ({ ...prev, corFundo: board.corFundo || "#f8fafc" }))
+                    }
                   }}
                 >
-                  <SelectTrigger className="w-64">
+                  <SelectTrigger className="w-64 bg-white">
                     <SelectValue placeholder="Selecione um quadro" />
                   </SelectTrigger>
                   <SelectContent>
@@ -451,22 +569,58 @@ export default function KanbanPage() {
                 </Select>
 
                 {selectedBoard && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem
-                        onClick={() => confirmarExclusaoBoard(selectedBoard)}
-                        className="text-red-600 focus:text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Excluir Quadro
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex gap-2">
+                    <Dialog open={showBoardSettings} onOpenChange={setShowBoardSettings}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="bg-white">
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Configurações do Quadro</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <Label>Cor de Fundo</Label>
+                            <div className="flex gap-2 mt-2">
+                              {["#f8fafc", "#f0f9ff", "#f0fdf4", "#fefce8", "#fef2f2", "#faf5ff"].map((cor) => (
+                                <button
+                                  key={cor}
+                                  type="button"
+                                  className={`w-8 h-8 rounded-full border-2 ${
+                                    newBoard.corFundo === cor ? "border-gray-900" : "border-gray-300"
+                                  }`}
+                                  style={{ backgroundColor: cor }}
+                                  onClick={() => setNewBoard((prev) => ({ ...prev, corFundo: cor }))}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <Button onClick={salvarConfiguracaoBoard} className="w-full">
+                            Salvar Configurações
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="bg-white">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem
+                          onClick={() => confirmarExclusaoBoard(selectedBoard)}
+                          className="text-red-600 focus:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir Quadro
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 )}
               </div>
             )}
@@ -476,59 +630,105 @@ export default function KanbanPage() {
                 {columns.map((column) => (
                   <div
                     key={column.id}
-                    className="bg-gray-50 rounded-lg p-4 min-h-96"
+                    className="rounded-xl shadow-lg min-h-96 transition-all duration-200 hover:shadow-xl"
+                    style={{ backgroundColor: column.cor || "#f1f5f9" }}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, column.id)}
                   >
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-lg">{column.nome}</h3>
-                      <Button size="sm" variant="ghost" onClick={() => abrirNovaTask(column.id)}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
+                    <div
+                      className="flex items-center justify-between p-4 rounded-t-xl"
+                      style={{
+                        backgroundColor: column.cor || "#f1f5f9",
+                        color: column.corTexto || "#1f2937",
+                      }}
+                    >
+                      <h3 className="font-bold text-lg">{column.nome}</h3>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => abrirNovaTask(column.id)}
+                          className="hover:bg-white/20"
+                          style={{ color: column.corTexto || "#1f2937" }}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="hover:bg-white/20"
+                              style={{ color: column.corTexto || "#1f2937" }}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => abrirEdicaoColumn(column)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Editar Coluna
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => confirmarExclusaoColumn(column)}
+                              className="text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir Coluna
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="p-4 space-y-3">
                       {filteredTasks
                         .filter((task) => task.columnId === column.id)
                         .sort((a, b) => a.ordem - b.ordem)
                         .map((task) => (
                           <Card
                             key={task.id}
-                            className="cursor-move hover:shadow-md transition-shadow"
+                            className="cursor-move hover:shadow-lg transition-all duration-200 bg-white border-0 shadow-md"
                             draggable
                             onDragStart={(e) => handleDragStart(e, task)}
                           >
                             <CardContent className="p-4">
-                              <div className="space-y-2">
+                              <div className="space-y-3">
                                 <div className="flex items-start justify-between">
-                                  <h4 className="font-medium flex-1">{task.titulo}</h4>
+                                  <h4 className="font-semibold text-gray-900 flex-1 leading-tight">{task.titulo}</h4>
                                   <div className="flex items-center gap-1 ml-2">
                                     <Button
                                       size="sm"
                                       variant="ghost"
                                       onClick={() => abrirEdicaoTask(task)}
-                                      className="h-6 w-6 p-0"
+                                      className="h-7 w-7 p-0 hover:bg-gray-100"
                                     >
-                                      <Edit className="h-3 w-3" />
+                                      <Edit className="h-3 w-3 text-gray-600" />
                                     </Button>
                                     <Button
                                       size="sm"
                                       variant="ghost"
                                       onClick={() => confirmarExclusaoTask(task)}
-                                      className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                                      className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                                     >
                                       <Trash2 className="h-3 w-3" />
                                     </Button>
                                   </div>
                                 </div>
 
-                                {task.descricao && <p className="text-sm text-muted-foreground">{task.descricao}</p>}
+                                {task.descricao && (
+                                  <p className="text-sm text-gray-600 leading-relaxed">{task.descricao}</p>
+                                )}
 
                                 <div className="flex items-center justify-between">
-                                  <Badge className={prioridadeCores[task.prioridade]}>{task.prioridade}</Badge>
+                                  <Badge
+                                    className={`${prioridadeCores[task.prioridade]} text-xs font-medium px-2 py-1`}
+                                  >
+                                    {task.prioridade}
+                                  </Badge>
 
                                   {task.prazo && (
-                                    <div className="flex items-center text-xs text-muted-foreground">
+                                    <div className="flex items-center text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
                                       <Calendar className="h-3 w-3 mr-1" />
                                       {task.prazo.toLocaleDateString()}
                                     </div>
@@ -536,7 +736,7 @@ export default function KanbanPage() {
                                 </div>
 
                                 {task.responsavel && (
-                                  <div className="flex items-center text-xs text-muted-foreground">
+                                  <div className="flex items-center text-xs text-gray-600 bg-blue-50 px-2 py-1 rounded">
                                     <User className="h-3 w-3 mr-1" />
                                     {task.responsavel}
                                   </div>
@@ -550,17 +750,62 @@ export default function KanbanPage() {
                 ))}
               </div>
             ) : selectedBoard ? (
-              <div className="text-center py-12">
-                <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Nenhuma coluna encontrada para este quadro.</p>
+              <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-lg">
+                <AlertCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-600">Nenhuma coluna encontrada para este quadro.</p>
               </div>
             ) : (
-              <div className="text-center py-12">
-                <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Crie seu primeiro quadro Kanban para começar.</p>
+              <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-lg">
+                <AlertCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-600">Crie seu primeiro quadro Kanban para começar.</p>
               </div>
             )}
 
+            {/* Modals for column editing */}
+            <Dialog open={showEditColumn} onOpenChange={setShowEditColumn}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Editar Coluna</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="nomeColuna">Nome da Coluna</Label>
+                    <Input
+                      id="nomeColuna"
+                      value={editColumnData.nome}
+                      onChange={(e) => setEditColumnData((prev) => ({ ...prev, nome: e.target.value }))}
+                      placeholder="Nome da coluna"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label>Cor da Coluna</Label>
+                    <div className="grid grid-cols-4 gap-2 mt-2">
+                      {coresDisponiveis.map((cor) => (
+                        <button
+                          key={cor.valor}
+                          type="button"
+                          className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                            editColumnData.cor === cor.valor ? "border-gray-900 scale-105" : "border-gray-300"
+                          }`}
+                          style={{ backgroundColor: cor.valor, color: cor.texto }}
+                          onClick={() =>
+                            setEditColumnData((prev) => ({ ...prev, cor: cor.valor, corTexto: cor.texto }))
+                          }
+                        >
+                          {cor.nome}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <Button onClick={salvarEdicaoColumn} className="w-full">
+                    Salvar Alterações
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Confirmation modals */}
             <ConfirmationModal
               isOpen={showDeleteBoardConfirm}
               onClose={() => setShowDeleteBoardConfirm(false)}
@@ -578,6 +823,16 @@ export default function KanbanPage() {
               title="Excluir Tarefa"
               description={`Tem certeza que deseja excluir a tarefa "${taskToDelete?.titulo}"? Esta ação não pode ser desfeita.`}
               confirmText="Excluir Tarefa"
+              isLoading={isDeleting}
+            />
+
+            <ConfirmationModal
+              isOpen={showDeleteColumnConfirm}
+              onClose={() => setShowDeleteColumnConfirm(false)}
+              onConfirm={excluirColumnHandler}
+              title="Excluir Coluna"
+              description={`Tem certeza que deseja excluir a coluna "${columnToDelete?.nome}"? Todas as tarefas desta coluna serão perdidas.`}
+              confirmText="Excluir Coluna"
               isLoading={isDeleting}
             />
           </div>

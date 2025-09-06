@@ -124,6 +124,7 @@ export interface KanbanBoard {
   id: string
   nome: string
   descricao?: string
+  corFundo?: string
   dataCriacao: Date
   registradoPor?: string
 }
@@ -134,6 +135,7 @@ export interface KanbanColumn {
   nome: string
   ordem: number
   cor?: string
+  corTexto?: string
 }
 
 export interface KanbanTask {

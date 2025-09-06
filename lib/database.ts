@@ -758,6 +758,28 @@ export const excluirBoard = async (boardId: string) => {
   }
 }
 
+export const atualizarBoard = async (boardId: string, dados: Partial<KanbanBoard>) => {
+  try {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const updateData: any = { ...dados }
+    if (dados.dataCriacao) {
+      updateData.dataCriacao = Timestamp.fromDate(dados.dataCriacao)
+    }
+
+    const docRef = doc(db, "kanban_boards", boardId)
+    await updateDoc(docRef, updateData)
+
+    cache.delete("kanban_boards")
+  } catch (error) {
+    console.error("Erro ao atualizar board:", error)
+    throw error
+  }
+}
+
 // Kanban Columns
 export const adicionarColumn = async (column: Omit<KanbanColumn, "id">) => {
   try {
@@ -801,6 +823,46 @@ export const obterColumns = async (boardId: string): Promise<KanbanColumn[]> => 
   } catch (error) {
     console.error("Erro ao obter colunas:", error)
     return []
+  }
+}
+
+export const atualizarColumn = async (columnId: string, dados: Partial<KanbanColumn>) => {
+  try {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const docRef = doc(db, "kanban_columns", columnId)
+    await updateDoc(docRef, dados)
+
+    // Limpar cache relacionado
+    if (dados.boardId) {
+      cache.delete(`kanban_columns_${dados.boardId}`)
+    }
+  } catch (error) {
+    console.error("Erro ao atualizar coluna:", error)
+    throw error
+  }
+}
+
+export const excluirColumn = async (columnId: string, boardId: string) => {
+  try {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const docRef = doc(db, "kanban_columns", columnId)
+    await updateDoc(docRef, {
+      excluida: true,
+      dataExclusao: Timestamp.fromDate(new Date()),
+    })
+
+    cache.delete(`kanban_columns_${boardId}`)
+  } catch (error) {
+    console.error("Erro ao excluir coluna:", error)
+    throw error
   }
 }
 

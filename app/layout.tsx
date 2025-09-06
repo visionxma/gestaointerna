@@ -48,16 +48,37 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
+              // iOS Safari compatibility fixes
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js')
-                    .then(function(registration) {
-                      console.log('SW registered: ', registration);
-                    })
-                    .catch(function(registrationError) {
-                      console.log('SW registration failed: ', registrationError);
+                  navigator.serviceWorker.register('/sw.js', {
+                    scope: '/'
+                  })
+                  .then(function(registration) {
+                    console.log('[App] SW registered successfully:', registration.scope);
+                    
+                    // Handle updates
+                    registration.addEventListener('updatefound', () => {
+                      console.log('[App] SW update found');
                     });
+                  })
+                  .catch(function(error) {
+                    console.log('[App] SW registration failed:', error);
+                    // Continue without SW on iOS Safari if it fails
+                  });
                 });
+              }
+
+              // iOS Safari specific fixes
+              if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                // Prevent zoom on input focus
+                document.addEventListener('touchstart', function() {}, true);
+                
+                // Fix viewport issues
+                const viewport = document.querySelector('meta[name=viewport]');
+                if (viewport) {
+                  viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover');
+                }
               }
             `,
           }}
@@ -73,9 +94,30 @@ html {
   touch-action: manipulation;
 }
 
+/* iOS Safari specific fixes */
+body {
+  /* Fix iOS Safari bounce */
+  position: fixed;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+#__next, [data-reactroot] {
+  height: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Melhorar performance de scroll em mobile */
 * {
   -webkit-overflow-scrolling: touch;
+}
+
+/* iOS Safari input fixes */
+input, textarea, select {
+  -webkit-appearance: none;
+  border-radius: 0;
 }
 
 /* Reduzir animações em dispositivos com pouca bateria */
