@@ -15,15 +15,16 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
-  swcMinify: true,
   env: {
     CUSTOM_KEY: 'my-value',
   },
   experimental: {
-    optimizeCss: true,
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
-  // Otimizações para mobile
+  // Configurações para build estático
+  output: 'export',
+  distDir: 'out',
+  // Remover configurações que causam problemas no build
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
