@@ -660,17 +660,26 @@ export default function KanbanPage() {
                               variant="ghost"
                               className="hover:bg-white/20"
                               style={{ color: column.corTexto || "#1f2937" }}
+                              onClick={(e) => e.stopPropagation()}
                             >
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => abrirEdicaoColumn(column)}>
+                            <DropdownMenuItem 
+                              onClick={(e) => {
+                                e.preventDefault();
+                                abrirEdicaoColumn(column);
+                              }}
+                            >
                               <Edit className="h-4 w-4 mr-2" />
                               Editar Coluna
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => confirmarExclusaoColumn(column)}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                confirmarExclusaoColumn(column);
+                              }}
                               className="text-red-600 focus:text-red-600"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
@@ -700,7 +709,10 @@ export default function KanbanPage() {
                                     <Button
                                       size="sm"
                                       variant="ghost"
-                                      onClick={() => abrirEdicaoTask(task)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        abrirEdicaoTask(task);
+                                      }}
                                       className="h-7 w-7 p-0 hover:bg-gray-100"
                                     >
                                       <Edit className="h-3 w-3 text-gray-600" />
@@ -708,7 +720,10 @@ export default function KanbanPage() {
                                     <Button
                                       size="sm"
                                       variant="ghost"
-                                      onClick={() => confirmarExclusaoTask(task)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        confirmarExclusaoTask(task);
+                                      }}
                                       className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                                     >
                                       <Trash2 className="h-3 w-3" />
@@ -761,7 +776,151 @@ export default function KanbanPage() {
               </div>
             )}
 
-            {/* Modals for column editing */}
+            {/* Modal para Nova Tarefa */}
+            <Dialog open={showNewTask} onOpenChange={setShowNewTask}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Nova Tarefa</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="titulo">Título</Label>
+                    <Input
+                      id="titulo"
+                      value={newTask.titulo}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, titulo: e.target.value }))}
+                      placeholder="Título da tarefa"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="descricao">Descrição</Label>
+                    <Textarea
+                      id="descricao"
+                      value={newTask.descricao}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, descricao: e.target.value }))}
+                      placeholder="Descrição da tarefa"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="responsavel">Responsável</Label>
+                    <Input
+                      id="responsavel"
+                      value={newTask.responsavel}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, responsavel: e.target.value }))}
+                      placeholder="Nome do responsável"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="prioridade">Prioridade</Label>
+                    <Select
+                      value={newTask.prioridade}
+                      onValueChange={(value: "baixa" | "media" | "alta") => 
+                        setNewTask(prev => ({ ...prev, prioridade: value }))
+                      }
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Selecione a prioridade" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="baixa">Baixa</SelectItem>
+                        <SelectItem value="media">Média</SelectItem>
+                        <SelectItem value="alta">Alta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="prazo">Prazo</Label>
+                    <Input
+                      id="prazo"
+                      type="date"
+                      value={newTask.prazo}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, prazo: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                  <Button onClick={criarTask} className="w-full">
+                    Criar Tarefa
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Modal para Editar Tarefa */}
+            <Dialog open={showEditTask} onOpenChange={setShowEditTask}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Editar Tarefa</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="editTitulo">Título</Label>
+                    <Input
+                      id="editTitulo"
+                      value={newTask.titulo}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, titulo: e.target.value }))}
+                      placeholder="Título da tarefa"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="editDescricao">Descrição</Label>
+                    <Textarea
+                      id="editDescricao"
+                      value={newTask.descricao}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, descricao: e.target.value }))}
+                      placeholder="Descrição da tarefa"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="editResponsavel">Responsável</Label>
+                    <Input
+                      id="editResponsavel"
+                      value={newTask.responsavel}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, responsavel: e.target.value }))}
+                      placeholder="Nome do responsável"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="editPrioridade">Prioridade</Label>
+                    <Select
+                      value={newTask.prioridade}
+                      onValueChange={(value: "baixa" | "media" | "alta") => 
+                        setNewTask(prev => ({ ...prev, prioridade: value }))
+                      }
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Selecione a prioridade" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="baixa">Baixa</SelectItem>
+                        <SelectItem value="media">Média</SelectItem>
+                        <SelectItem value="alta">Alta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="editPrazo">Prazo</Label>
+                    <Input
+                      id="editPrazo"
+                      type="date"
+                      value={newTask.prazo}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, prazo: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                  <Button onClick={editarTask} className="w-full">
+                    Salvar Alterações
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Modal para Editar Coluna */}
             <Dialog open={showEditColumn} onOpenChange={setShowEditColumn}>
               <DialogContent>
                 <DialogHeader>
