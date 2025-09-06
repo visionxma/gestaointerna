@@ -1,9 +1,21 @@
 import { collection, addDoc, getDocs, query, orderBy, Timestamp, doc, updateDoc } from "firebase/firestore"
 import { db, auth } from "./firebase"
-import type { Cliente, Receita, Despesa, Senha, Projeto, AtividadeProjeto, Orcamento, Recibo } from "./types"
+import type {
+  Cliente,
+  Receita,
+  Despesa,
+  Senha,
+  Projeto,
+  AtividadeProjeto,
+  Orcamento,
+  Recibo,
+  KanbanBoard,
+  KanbanColumn,
+  KanbanTask,
+} from "./types"
 
 // Cache para melhorar performance em mobile
-const cache = new Map<string, { data: any[], timestamp: number }>()
+const cache = new Map<string, { data: any[]; timestamp: number }>()
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
 
 const getCachedData = (key: string) => {
@@ -22,15 +34,15 @@ const setCachedData = (key: string, data: any[]) => {
 const waitForAuth = async (timeoutMs = 10000): Promise<boolean> => {
   return new Promise((resolve) => {
     let resolved = false
-    
+
     const timeout = setTimeout(() => {
       if (!resolved) {
         resolved = true
-        console.warn('Auth timeout - continuando sem autenticação')
+        console.warn("Auth timeout - continuando sem autenticação")
         resolve(false)
       }
     }, timeoutMs)
-    
+
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (!resolved) {
         resolved = true
@@ -55,10 +67,10 @@ export const adicionarCliente = async (cliente: Omit<Cliente, "id">) => {
       dataRegistro: Timestamp.fromDate(cliente.dataRegistro),
       registradoPor: auth.currentUser.displayName || auth.currentUser.email || "Usuário",
     })
-    
+
     // Limpar cache após adicionar
-    cache.delete('clientes')
-    
+    cache.delete("clientes")
+
     return docRef.id
   } catch (error) {
     console.error("Erro ao adicionar cliente:", error)
@@ -69,7 +81,7 @@ export const adicionarCliente = async (cliente: Omit<Cliente, "id">) => {
 export const obterClientes = async (): Promise<Cliente[]> => {
   try {
     // Verificar cache primeiro
-    const cached = getCachedData('clientes')
+    const cached = getCachedData("clientes")
     if (cached) {
       return cached
     }
@@ -87,10 +99,10 @@ export const obterClientes = async (): Promise<Cliente[]> => {
       ...doc.data(),
       dataRegistro: doc.data().dataRegistro.toDate(),
     })) as Cliente[]
-    
+
     // Armazenar no cache
-    setCachedData('clientes', clientes)
-    
+    setCachedData("clientes", clientes)
+
     return clientes
   } catch (error) {
     console.error("Erro ao obter clientes:", error)
@@ -111,10 +123,10 @@ export const adicionarReceita = async (receita: Omit<Receita, "id">) => {
       data: Timestamp.fromDate(receita.data),
       registradoPor: auth.currentUser.displayName || auth.currentUser.email || "Usuário",
     })
-    
+
     // Limpar cache após adicionar
-    cache.delete('receitas')
-    
+    cache.delete("receitas")
+
     return docRef.id
   } catch (error) {
     console.error("Erro ao adicionar receita:", error)
@@ -125,7 +137,7 @@ export const adicionarReceita = async (receita: Omit<Receita, "id">) => {
 export const obterReceitas = async (): Promise<Receita[]> => {
   try {
     // Verificar cache primeiro
-    const cached = getCachedData('receitas')
+    const cached = getCachedData("receitas")
     if (cached) {
       return cached
     }
@@ -142,10 +154,10 @@ export const obterReceitas = async (): Promise<Receita[]> => {
       ...doc.data(),
       data: doc.data().data.toDate(),
     })) as Receita[]
-    
+
     // Armazenar no cache
-    setCachedData('receitas', receitas)
-    
+    setCachedData("receitas", receitas)
+
     return receitas
   } catch (error) {
     console.error("Erro ao obter receitas:", error)
@@ -166,10 +178,10 @@ export const adicionarDespesa = async (despesa: Omit<Despesa, "id">) => {
       data: Timestamp.fromDate(despesa.data),
       registradoPor: auth.currentUser.displayName || auth.currentUser.email || "Usuário",
     })
-    
+
     // Limpar cache após adicionar
-    cache.delete('despesas')
-    
+    cache.delete("despesas")
+
     return docRef.id
   } catch (error) {
     console.error("Erro ao adicionar despesa:", error)
@@ -180,7 +192,7 @@ export const adicionarDespesa = async (despesa: Omit<Despesa, "id">) => {
 export const obterDespesas = async (): Promise<Despesa[]> => {
   try {
     // Verificar cache primeiro
-    const cached = getCachedData('despesas')
+    const cached = getCachedData("despesas")
     if (cached) {
       return cached
     }
@@ -197,10 +209,10 @@ export const obterDespesas = async (): Promise<Despesa[]> => {
       ...doc.data(),
       data: doc.data().data.toDate(),
     })) as Despesa[]
-    
+
     // Armazenar no cache
-    setCachedData('despesas', despesas)
-    
+    setCachedData("despesas", despesas)
+
     return despesas
   } catch (error) {
     console.error("Erro ao obter despesas:", error)
@@ -290,14 +302,14 @@ export const obterProjetos = async (): Promise<Projeto[]> => {
   }
 }
 
-export const atualizarStatusProjeto = async (projetoId: string, status: Projeto['status'], dataEntrega?: Date) => {
+export const atualizarStatusProjeto = async (projetoId: string, status: Projeto["status"], dataEntrega?: Date) => {
   try {
     if (!auth.currentUser) {
       throw new Error("Usuário não autenticado")
     }
 
     const updateData: any = { status }
-    if (status === 'entregue' && dataEntrega) {
+    if (status === "entregue" && dataEntrega) {
       updateData.dataEntrega = Timestamp.fromDate(dataEntrega)
     }
 
@@ -335,20 +347,16 @@ export const obterAtividadesProjeto = async (projetoId: string): Promise<Ativida
       return []
     }
 
-    const q = query(
-      collection(db, "atividades_projetos"),
-      orderBy("dataCriacao", "asc")
-    )
+    const q = query(collection(db, "atividades_projetos"), orderBy("dataCriacao", "asc"))
     const querySnapshot = await getDocs(q)
-    const atividades = querySnapshot.docs
-      .map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        dataCriacao: doc.data().dataCriacao.toDate(),
-        dataConclusao: doc.data().dataConclusao ? doc.data().dataConclusao.toDate() : undefined,
-      })) as AtividadeProjeto[]
-    
-    return atividades.filter(atividade => atividade.projetoId === projetoId)
+    const atividades = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      dataCriacao: doc.data().dataCriacao.toDate(),
+      dataConclusao: doc.data().dataConclusao ? doc.data().dataConclusao.toDate() : undefined,
+    })) as AtividadeProjeto[]
+
+    return atividades.filter((atividade) => atividade.projetoId === projetoId)
   } catch (error) {
     console.error("Erro ao obter atividades do projeto:", error)
     return []
@@ -361,13 +369,18 @@ export const atualizarAtividadeProjeto = async (atividadeId: string, concluida: 
       throw new Error("Usuário não autenticado")
     }
 
-    const updateData: any = { 
+    const updateData: any = {
       concluida,
-      dataConclusao: concluida ? Timestamp.fromDate(new Date()) : null
+      dataConclusao: concluida ? Timestamp.fromDate(new Date()) : null,
     }
 
     const docRef = doc(db, "atividades_projetos", atividadeId)
     await updateDoc(docRef, updateData)
+
+    // Limpar cache relacionado
+    if (atividadeId) {
+      cache.delete(`atividades_projetos_${atividadeId}`)
+    }
   } catch (error) {
     console.error("Erro ao atualizar atividade do projeto:", error)
     throw error
@@ -434,7 +447,7 @@ export const atualizarOrcamento = async (orcamentoId: string, dados: Partial<Orc
   }
 }
 
-export const atualizarStatusOrcamento = async (orcamentoId: string, status: Orcamento['status']) => {
+export const atualizarStatusOrcamento = async (orcamentoId: string, status: Orcamento["status"]) => {
   try {
     if (!auth.currentUser) {
       throw new Error("Usuário não autenticado")
@@ -447,8 +460,6 @@ export const atualizarStatusOrcamento = async (orcamentoId: string, status: Orca
     throw error
   }
 }
-// Adicione estas funções ao final do seu arquivo /lib/database.ts
-
 // Recibos
 export const adicionarRecibo = async (recibo: Omit<Recibo, "id">) => {
   try {
@@ -522,7 +533,7 @@ export const atualizarRecibo = async (reciboId: string, dados: Partial<Recibo>) 
   }
 }
 
-export const atualizarStatusRecibo = async (reciboId: string, status: Recibo['status']) => {
+export const atualizarStatusRecibo = async (reciboId: string, status: Recibo["status"]) => {
   try {
     if (!auth.currentUser) {
       throw new Error("Usuário não autenticado")
@@ -532,6 +543,207 @@ export const atualizarStatusRecibo = async (reciboId: string, status: Recibo['st
     await updateDoc(docRef, { status })
   } catch (error) {
     console.error("Erro ao atualizar status do recibo:", error)
+    throw error
+  }
+}
+
+// Kanban Boards
+export const adicionarBoard = async (board: Omit<KanbanBoard, "id">) => {
+  try {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const docRef = await addDoc(collection(db, "kanban_boards"), {
+      ...board,
+      dataCriacao: Timestamp.fromDate(board.dataCriacao),
+      registradoPor: auth.currentUser.displayName || auth.currentUser.email || "Usuário",
+    })
+
+    cache.delete("kanban_boards")
+    return docRef.id
+  } catch (error) {
+    console.error("Erro ao adicionar board:", error)
+    throw error
+  }
+}
+
+export const obterBoards = async (): Promise<KanbanBoard[]> => {
+  try {
+    const cached = getCachedData("kanban_boards")
+    if (cached) {
+      return cached
+    }
+
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      console.log("[v0] Usuário não autenticado, retornando array vazio")
+      return []
+    }
+
+    const q = query(collection(db, "kanban_boards"), orderBy("dataCriacao", "desc"))
+    const querySnapshot = await getDocs(q)
+    const boards = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      dataCriacao: doc.data().dataCriacao.toDate(),
+    })) as KanbanBoard[]
+
+    setCachedData("kanban_boards", boards)
+    return boards
+  } catch (error) {
+    console.error("Erro ao obter boards:", error)
+    return []
+  }
+}
+
+// Kanban Columns
+export const adicionarColumn = async (column: Omit<KanbanColumn, "id">) => {
+  try {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const docRef = await addDoc(collection(db, "kanban_columns"), column)
+    cache.delete(`kanban_columns_${column.boardId}`)
+    return docRef.id
+  } catch (error) {
+    console.error("Erro ao adicionar coluna:", error)
+    throw error
+  }
+}
+
+export const obterColumns = async (boardId: string): Promise<KanbanColumn[]> => {
+  try {
+    const cached = getCachedData(`kanban_columns_${boardId}`)
+    if (cached) {
+      return cached
+    }
+
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      console.log("[v0] Usuário não autenticado, retornando array vazio")
+      return []
+    }
+
+    const q = query(collection(db, "kanban_columns"), orderBy("ordem", "asc"))
+    const querySnapshot = await getDocs(q)
+    const columns = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as KanbanColumn[]
+
+    const filteredColumns = columns.filter((column) => column.boardId === boardId)
+    setCachedData(`kanban_columns_${boardId}`, filteredColumns)
+    return filteredColumns
+  } catch (error) {
+    console.error("Erro ao obter colunas:", error)
+    return []
+  }
+}
+
+// Kanban Tasks
+export const adicionarTask = async (task: Omit<KanbanTask, "id">) => {
+  try {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const docRef = await addDoc(collection(db, "kanban_tasks"), {
+      ...task,
+      prazo: task.prazo ? Timestamp.fromDate(task.prazo) : null,
+      dataCriacao: Timestamp.fromDate(task.dataCriacao),
+      dataAtualizacao: Timestamp.fromDate(task.dataAtualizacao),
+      registradoPor: auth.currentUser.displayName || auth.currentUser.email || "Usuário",
+    })
+
+    cache.delete(`kanban_tasks_${task.boardId}`)
+    return docRef.id
+  } catch (error) {
+    console.error("Erro ao adicionar tarefa:", error)
+    throw error
+  }
+}
+
+export const obterTasks = async (boardId: string): Promise<KanbanTask[]> => {
+  try {
+    const cached = getCachedData(`kanban_tasks_${boardId}`)
+    if (cached) {
+      return cached
+    }
+
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      console.log("[v0] Usuário não autenticado, retornando array vazio")
+      return []
+    }
+
+    const q = query(collection(db, "kanban_tasks"), orderBy("ordem", "asc"))
+    const querySnapshot = await getDocs(q)
+    const tasks = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      prazo: doc.data().prazo ? doc.data().prazo.toDate() : undefined,
+      dataCriacao: doc.data().dataCriacao.toDate(),
+      dataAtualizacao: doc.data().dataAtualizacao.toDate(),
+    })) as KanbanTask[]
+
+    const filteredTasks = tasks.filter((task) => task.boardId === boardId)
+    setCachedData(`kanban_tasks_${boardId}`, filteredTasks)
+    return filteredTasks
+  } catch (error) {
+    console.error("Erro ao obter tarefas:", error)
+    return []
+  }
+}
+
+export const atualizarTask = async (taskId: string, dados: Partial<KanbanTask>) => {
+  try {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const updateData: any = {
+      ...dados,
+      dataAtualizacao: Timestamp.fromDate(new Date()),
+    }
+
+    if (dados.prazo) {
+      updateData.prazo = Timestamp.fromDate(dados.prazo)
+    }
+
+    const docRef = doc(db, "kanban_tasks", taskId)
+    await updateDoc(docRef, updateData)
+
+    // Limpar cache relacionado
+    if (dados.boardId) {
+      cache.delete(`kanban_tasks_${dados.boardId}`)
+    }
+  } catch (error) {
+    console.error("Erro ao atualizar tarefa:", error)
+    throw error
+  }
+}
+
+export const moverTask = async (taskId: string, novaColumnId: string, novaOrdem: number) => {
+  try {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const docRef = doc(db, "kanban_tasks", taskId)
+    await updateDoc(docRef, {
+      columnId: novaColumnId,
+      ordem: novaOrdem,
+      dataAtualizacao: Timestamp.fromDate(new Date()),
+    })
+  } catch (error) {
+    console.error("Erro ao mover tarefa:", error)
     throw error
   }
 }

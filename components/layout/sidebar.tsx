@@ -4,7 +4,20 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Users, TrendingUp, TrendingDown, Menu, X, Shield, FolderKanban, FileText, Receipt, Settings } from "lucide-react"
+import {
+  LayoutDashboard,
+  Users,
+  TrendingUp,
+  TrendingDown,
+  Menu,
+  X,
+  Shield,
+  FolderKanban,
+  FileText,
+  Receipt,
+  Settings,
+  Kanban,
+} from "lucide-react"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import Image from "next/image"
 
@@ -12,6 +25,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Clientes", href: "/clientes", icon: Users },
   { name: "Projetos", href: "/projetos", icon: FolderKanban },
+  { name: "Kanban", href: "/kanban", icon: Kanban },
   { name: "Orçamentos", href: "/orcamentos", icon: FileText },
   { name: "Receitas", href: "/receitas", icon: TrendingUp },
   { name: "Despesas", href: "/despesas", icon: TrendingDown },
@@ -30,7 +44,7 @@ const motivationalMessages = [
   "O sucesso começa com uma atitude positiva.",
   "Transforme desafios em aprendizado.",
   "Seja a mudança que você quer ver.",
-  "Continue avançando, mesmo devagar."
+  "Continue avançando, mesmo devagar.",
 ]
 
 export function Sidebar() {
@@ -48,35 +62,36 @@ export function Sidebar() {
     // Reduzir frequência em mobile para economizar recursos
     const isMobile = window.innerWidth < 768
     const interval = isMobile ? 10000 : 5000 // 10s em mobile, 5s em desktop
-    
+
     const timer = setInterval(() => {
       setMessageIndex((prev) => (prev + 1) % motivationalMessages.length)
     }, interval)
-    
+
     return () => clearInterval(timer)
   }, [])
 
   // Memoizar a lista de navegação
-  const navigationItems = useMemo(() => 
-    navigation.map((item) => {
-      const isActive = pathname === item.href
-      return (
-        <Link
-          key={item.name}
-          href={item.href}
-          onClick={closeSidebar}
-          className={cn(
-            "flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-150",
-            isActive
-              ? "bg-black text-white"
-              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-          )}
-        >
-          <item.icon className="mr-3 h-5 w-5" />
-          {item.name}
-        </Link>
-      )
-    }), [pathname, closeSidebar])
+  const navigationItems = useMemo(
+    () =>
+      navigation.map((item) => {
+        const isActive = pathname === item.href
+        return (
+          <Link
+            key={item.name}
+            href={item.href}
+            onClick={closeSidebar}
+            className={cn(
+              "flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-150",
+              isActive ? "bg-black text-white" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+            )}
+          >
+            <item.icon className="mr-3 h-5 w-5" />
+            {item.name}
+          </Link>
+        )
+      }),
+    [pathname, closeSidebar],
+  )
   return (
     <>
       {/* Botão mobile */}
@@ -93,7 +108,7 @@ export function Sidebar() {
       <div
         className={cn(
           "fixed inset-y-0 left-0 z-40 w-64 bg-gradient-to-br from-gray-50 to-gray-100 border-r border-gray-200 transform transition-transform duration-200 ease-in-out lg:translate-x-0",
-          isOpen ? "translate-x-0" : "-translate-x-full"
+          isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div className="flex flex-col h-full relative overflow-hidden">
@@ -103,17 +118,17 @@ export function Sidebar() {
 
           {/* Logo e título */}
           <div className="relative flex flex-col items-center justify-center px-4 py-6 border-b border-gray-200 z-10">
-            <Image 
-              src="https://i.imgur.com/nVflzaY.png" 
+            <Image
+              src="https://i.imgur.com/nVflzaY.png"
               alt="VisionX Logo"
-              width={120} 
+              width={120}
               height={120}
               className="object-contain mb-3"
               priority
               loading="eager"
               onError={(e) => {
                 const target = e.target as HTMLImageElement
-                target.style.display = 'none'
+                target.style.display = "none"
               }}
             />
             <div className="text-center">
@@ -123,17 +138,12 @@ export function Sidebar() {
           </div>
 
           {/* Navegação */}
-          <nav className="relative flex-1 px-4 py-6 space-y-2 z-10 overflow-y-auto">
-            {navigationItems}
-          </nav>
+          <nav className="relative flex-1 px-4 py-6 space-y-2 z-10 overflow-y-auto">{navigationItems}</nav>
 
           {/* Rodapé apenas com mensagem motivacional */}
           <div className="relative px-4 py-4 border-t border-gray-200 z-10 bg-white/70 backdrop-blur-md">
-            <div className="text-xs text-gray-600 italic text-center">
-              {motivationalMessages[messageIndex]}
-            </div>
+            <div className="text-xs text-gray-600 italic text-center">{motivationalMessages[messageIndex]}</div>
           </div>
-
         </div>
       </div>
 

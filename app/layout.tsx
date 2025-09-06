@@ -1,7 +1,5 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { GeistSans } from "geist/font/sans"
-import { GeistMono } from "geist/font/mono"
 import { AuthProvider } from "@/contexts/auth-context"
 import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
@@ -15,8 +13,8 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "VisionX"
-  }
+    title: "VisionX",
+  },
 }
 
 export default function RootLayout({
@@ -27,20 +25,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link
-          rel="icon"
-          type="image/png"
-          href="https://i.imgur.com/54c5G3Q.png"
-        />
+        <link rel="icon" type="image/png" href="https://i.imgur.com/54c5G3Q.png" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <style>{`
+/* Reverted to system default fonts */
 html {
-  font-family: ${GeistSans.style.fontFamily};
-  --font-sans: ${GeistSans.variable};
-  --font-mono: ${GeistMono.variable};
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   /* Otimizações para mobile */
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
@@ -71,4 +64,3 @@ html {
     </html>
   )
 }
-

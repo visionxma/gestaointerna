@@ -54,7 +54,7 @@ export interface Projeto {
   nome: string
   descricao: string
   clienteId?: string
-  status: 'prospeccao' | 'desenvolvimento' | 'entregue'
+  status: "prospeccao" | "desenvolvimento" | "entregue"
   valor?: number
   dataInicio: Date
   dataPrevisao?: Date
@@ -95,7 +95,7 @@ export interface Orcamento {
   subtotal: number
   desconto: number
   valorTotal: number
-  status: 'rascunho' | 'enviado' | 'aprovado' | 'rejeitado'
+  status: "rascunho" | "enviado" | "aprovado" | "rejeitado"
   dataVencimento: Date
   dataCriacao: Date
   observacoes?: string
@@ -111,11 +111,43 @@ export interface Recibo {
   telefoneCliente: string
   descricaoServico: string
   valorPago: number
-  formaPagamento: 'dinheiro' | 'pix' | 'cartao' | 'transferencia' | 'boleto'
+  formaPagamento: "dinheiro" | "pix" | "cartao" | "transferencia" | "boleto"
   dataPagamento: Date
   dataVencimento?: Date
   observacoes?: string
-  status: 'pago' | 'pendente' | 'cancelado'
+  status: "pago" | "pendente" | "cancelado"
   dataCriacao: Date
+  registradoPor?: string
+}
+
+export interface KanbanBoard {
+  id: string
+  nome: string
+  descricao?: string
+  dataCriacao: Date
+  registradoPor?: string
+}
+
+export interface KanbanColumn {
+  id: string
+  boardId: string
+  nome: string
+  ordem: number
+  cor?: string
+}
+
+export interface KanbanTask {
+  id: string
+  columnId: string
+  boardId: string
+  titulo: string
+  descricao?: string
+  responsavel?: string
+  prioridade: "baixa" | "media" | "alta"
+  prazo?: Date
+  ordem: number
+  etiquetas?: string[]
+  dataCriacao: Date
+  dataAtualizacao: Date
   registradoPor?: string
 }
