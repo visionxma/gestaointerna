@@ -61,6 +61,7 @@ export default function KanbanPage() {
   const [filterResponsavel, setFilterResponsavel] = useState<string>("todos")
   const [filterPrioridade, setFilterPrioridade] = useState<string>("todas")
   const [draggedTask, setDraggedTask] = useState<KanbanTask | null>(null)
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
 
   // Estados para modais
   const [showNewBoard, setShowNewBoard] = useState(false)
@@ -358,6 +359,21 @@ export default function KanbanPage() {
     console.log("[v0] Iniciando drag da tarefa:", task.titulo)
     setDraggedTask(task)
     e.dataTransfer.effectAllowed = "move"
+    e.dataTransfer.setData("text/plain", task.id)
+
+    // Add visual feedback to the dragged element
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = "0.5"
+    }
+  }
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    // Reset visual feedback
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = "1"
+    }
+    setDraggedTask(null)
+    setDragOverColumn(null)
   }
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -365,8 +381,23 @@ export default function KanbanPage() {
     e.dataTransfer.dropEffect = "move"
   }
 
+  const handleDragEnter = (e: React.DragEvent, columnId: string) => {
+    e.preventDefault()
+    if (draggedTask && draggedTask.columnId !== columnId) {
+      setDragOverColumn(columnId)
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear if we're leaving the column entirely
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragOverColumn(null)
+    }
+  }
+
   const handleDrop = async (e: React.DragEvent, columnId: string) => {
     e.preventDefault()
+    setDragOverColumn(null)
 
     if (!draggedTask || draggedTask.columnId === columnId) {
       console.log("[v0] Drop cancelado - mesma coluna ou sem tarefa")
@@ -376,20 +407,67 @@ export default function KanbanPage() {
 
     try {
       console.log("[v0] Movendo tarefa:", draggedTask.titulo, "para coluna:", columnId)
-      const tasksNaColuna = tasks.filter((t) => t.columnId === columnId)
+
+      // Optimistic update - update UI immediately
+      const updatedTasks = tasks.map((task) => (task.id === draggedTask.id ? { ...task, columnId: columnId } : task))
+
+      // Update local state immediately for better UX
+      const tasksNaColuna = updatedTasks.filter((t) => t.columnId === columnId && t.id !== draggedTask.id)
       const novaOrdem = tasksNaColuna.length
 
+      // Update database
       await moverTask(draggedTask.id, columnId, novaOrdem)
 
+      // Reload data to ensure consistency
       if (selectedBoard) {
         await carregarBoardData(selectedBoard.id)
       }
       console.log("[v0] Tarefa movida com sucesso")
     } catch (error) {
       console.error("[v0] Erro ao mover tarefa:", error)
+      // Reload data on error to revert optimistic update
+      if (selectedBoard) {
+        await carregarBoardData(selectedBoard.id)
+      }
     }
 
     setDraggedTask(null)
+  }
+
+  const handleTouchStart = (e: React.TouchEvent, task: KanbanTask) => {
+    setDraggedTask(task)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault()
+    const touch = e.touches[0]
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY)
+    const columnElement = elementBelow?.closest("[data-column-id]")
+
+    if (columnElement) {
+      const columnId = columnElement.getAttribute("data-column-id")
+      if (columnId && draggedTask && draggedTask.columnId !== columnId) {
+        setDragOverColumn(columnId)
+      }
+    }
+  }
+
+  const handleTouchEnd = async (e: React.TouchEvent) => {
+    if (!draggedTask) return
+
+    const touch = e.changedTouches[0]
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY)
+    const columnElement = elementBelow?.closest("[data-column-id]")
+
+    if (columnElement) {
+      const columnId = columnElement.getAttribute("data-column-id")
+      if (columnId && columnId !== draggedTask.columnId) {
+        await handleDrop({ preventDefault: () => {} } as any, columnId)
+      }
+    }
+
+    setDraggedTask(null)
+    setDragOverColumn(null)
   }
 
   const abrirEdicaoTask = (task: KanbanTask) => {
@@ -630,10 +708,16 @@ export default function KanbanPage() {
                 {columns.map((column) => (
                   <div
                     key={column.id}
-                    className="rounded-xl shadow-lg min-h-96 transition-all duration-200 hover:shadow-xl"
-                    style={{ backgroundColor: column.cor || "#f1f5f9" }}
+                    className={`bg-gray-50 rounded-xl shadow-sm border transition-all duration-200 ${
+                      dragOverColumn === column.id
+                        ? "ring-2 ring-blue-400 ring-opacity-75 shadow-lg transform scale-[1.02]"
+                        : ""
+                    }`}
                     onDragOver={handleDragOver}
+                    onDragEnter={(e) => handleDragEnter(e, column.id)}
+                    onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, column.id)}
+                    data-column-id={column.id}
                   >
                     <div
                       className="flex items-center justify-between p-4 rounded-t-xl"
@@ -666,10 +750,10 @@ export default function KanbanPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={(e) => {
-                                e.preventDefault();
-                                abrirEdicaoColumn(column);
+                                e.preventDefault()
+                                abrirEdicaoColumn(column)
                               }}
                             >
                               <Edit className="h-4 w-4 mr-2" />
@@ -677,8 +761,8 @@ export default function KanbanPage() {
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={(e) => {
-                                e.preventDefault();
-                                confirmarExclusaoColumn(column);
+                                e.preventDefault()
+                                confirmarExclusaoColumn(column)
                               }}
                               className="text-red-600 focus:text-red-600"
                             >
@@ -697,9 +781,15 @@ export default function KanbanPage() {
                         .map((task) => (
                           <Card
                             key={task.id}
-                            className="cursor-move hover:shadow-lg transition-all duration-200 bg-white border-0 shadow-md"
+                            className={`cursor-move hover:shadow-lg transition-all duration-200 bg-white border-0 shadow-md ${
+                              draggedTask?.id === task.id ? "opacity-50 transform rotate-2" : ""
+                            }`}
                             draggable
                             onDragStart={(e) => handleDragStart(e, task)}
+                            onDragEnd={handleDragEnd}
+                            onTouchStart={(e) => handleTouchStart(e, task)}
+                            onTouchMove={handleTouchMove}
+                            onTouchEnd={handleTouchEnd}
                           >
                             <CardContent className="p-4">
                               <div className="space-y-3">
@@ -710,8 +800,8 @@ export default function KanbanPage() {
                                       size="sm"
                                       variant="ghost"
                                       onClick={(e) => {
-                                        e.stopPropagation();
-                                        abrirEdicaoTask(task);
+                                        e.stopPropagation()
+                                        abrirEdicaoTask(task)
                                       }}
                                       className="h-7 w-7 p-0 hover:bg-gray-100"
                                     >
@@ -721,8 +811,8 @@ export default function KanbanPage() {
                                       size="sm"
                                       variant="ghost"
                                       onClick={(e) => {
-                                        e.stopPropagation();
-                                        confirmarExclusaoTask(task);
+                                        e.stopPropagation()
+                                        confirmarExclusaoTask(task)
                                       }}
                                       className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                                     >
@@ -788,7 +878,7 @@ export default function KanbanPage() {
                     <Input
                       id="titulo"
                       value={newTask.titulo}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, titulo: e.target.value }))}
+                      onChange={(e) => setNewTask((prev) => ({ ...prev, titulo: e.target.value }))}
                       placeholder="Título da tarefa"
                       className="mt-1"
                     />
@@ -798,7 +888,7 @@ export default function KanbanPage() {
                     <Textarea
                       id="descricao"
                       value={newTask.descricao}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, descricao: e.target.value }))}
+                      onChange={(e) => setNewTask((prev) => ({ ...prev, descricao: e.target.value }))}
                       placeholder="Descrição da tarefa"
                       className="mt-1"
                     />
@@ -808,7 +898,7 @@ export default function KanbanPage() {
                     <Input
                       id="responsavel"
                       value={newTask.responsavel}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, responsavel: e.target.value }))}
+                      onChange={(e) => setNewTask((prev) => ({ ...prev, responsavel: e.target.value }))}
                       placeholder="Nome do responsável"
                       className="mt-1"
                     />
@@ -817,8 +907,8 @@ export default function KanbanPage() {
                     <Label htmlFor="prioridade">Prioridade</Label>
                     <Select
                       value={newTask.prioridade}
-                      onValueChange={(value: "baixa" | "media" | "alta") => 
-                        setNewTask(prev => ({ ...prev, prioridade: value }))
+                      onValueChange={(value: "baixa" | "media" | "alta") =>
+                        setNewTask((prev) => ({ ...prev, prioridade: value }))
                       }
                     >
                       <SelectTrigger className="mt-1">
@@ -837,7 +927,7 @@ export default function KanbanPage() {
                       id="prazo"
                       type="date"
                       value={newTask.prazo}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, prazo: e.target.value }))}
+                      onChange={(e) => setNewTask((prev) => ({ ...prev, prazo: e.target.value }))}
                       className="mt-1"
                     />
                   </div>
@@ -860,7 +950,7 @@ export default function KanbanPage() {
                     <Input
                       id="editTitulo"
                       value={newTask.titulo}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, titulo: e.target.value }))}
+                      onChange={(e) => setNewTask((prev) => ({ ...prev, titulo: e.target.value }))}
                       placeholder="Título da tarefa"
                       className="mt-1"
                     />
@@ -870,7 +960,7 @@ export default function KanbanPage() {
                     <Textarea
                       id="editDescricao"
                       value={newTask.descricao}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, descricao: e.target.value }))}
+                      onChange={(e) => setNewTask((prev) => ({ ...prev, descricao: e.target.value }))}
                       placeholder="Descrição da tarefa"
                       className="mt-1"
                     />
@@ -880,7 +970,7 @@ export default function KanbanPage() {
                     <Input
                       id="editResponsavel"
                       value={newTask.responsavel}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, responsavel: e.target.value }))}
+                      onChange={(e) => setNewTask((prev) => ({ ...prev, responsavel: e.target.value }))}
                       placeholder="Nome do responsável"
                       className="mt-1"
                     />
@@ -889,8 +979,8 @@ export default function KanbanPage() {
                     <Label htmlFor="editPrioridade">Prioridade</Label>
                     <Select
                       value={newTask.prioridade}
-                      onValueChange={(value: "baixa" | "media" | "alta") => 
-                        setNewTask(prev => ({ ...prev, prioridade: value }))
+                      onValueChange={(value: "baixa" | "media" | "alta") =>
+                        setNewTask((prev) => ({ ...prev, prioridade: value }))
                       }
                     >
                       <SelectTrigger className="mt-1">
@@ -909,7 +999,7 @@ export default function KanbanPage() {
                       id="editPrazo"
                       type="date"
                       value={newTask.prazo}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, prazo: e.target.value }))}
+                      onChange={(e) => setNewTask((prev) => ({ ...prev, prazo: e.target.value }))}
                       className="mt-1"
                     />
                   </div>
