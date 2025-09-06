@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Clock, User, LogOut, ChevronDown } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { fazerLogout } from "@/lib/auth"
 import {
@@ -28,14 +28,13 @@ export function UserHeader({ showWelcome = true, variant = 'default', className 
   const { user } = useAuth()
   const router = useRouter()
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0)
-  const [fade, setFade] = useState(false)
 
   if (!user) return null
 
   const displayName = user.displayName || user.email?.split("@")[0] || "Usuário"
   const firstName = displayName.split(" ")[0]
 
-  const getGreeting = () => {
+  const getGreeting = useCallback(() => {
     const hour = new Date().getHours()
     switch (true) {
       case hour >= 4 && hour < 12:
@@ -45,24 +44,24 @@ export function UserHeader({ showWelcome = true, variant = 'default', className 
       default:
         return "Boa noite"
     }
-  }
+  }, [])
 
-  const getCurrentDate = () => {
+  const getCurrentDate = useMemo(() => {
     return new Intl.DateTimeFormat("pt-BR", {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
       year: 'numeric'
     }).format(new Date())
-  }
+  }, [])
 
-  const getInitials = (name: string) =>
+  const getInitials = useCallback((name: string) =>
     name
       .split(" ")
       .filter(Boolean)
       .slice(0, 2)
       .map(word => word.charAt(0).toUpperCase())
-      .join("")
+      .join(""), [])
 
   const motivationalMessages = [
     "Acredite no seu potencial!",
@@ -77,20 +76,22 @@ export function UserHeader({ showWelcome = true, variant = 'default', className 
     "Transforme desafios em oportunidades."
   ]
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     const { error } = await fazerLogout()
     if (!error) router.push("/login")
-  }
+  }, [router])
 
+  // Otimizar o efeito das mensagens para mobile
   useEffect(() => {
-    const interval = setInterval(() => {
-      setFade(true)
-      setTimeout(() => {
-        setCurrentMessageIndex(Math.floor(Math.random() * motivationalMessages.length))
-        setFade(false)
-      }, 500) // duração da transição
-    }, 10000) // troca a cada 10 segundos
-    return () => clearInterval(interval)
+    // Detectar se é mobile e ajustar intervalo
+    const isMobile = window.innerWidth < 768
+    const interval = isMobile ? 15000 : 10000 // Mais lento em mobile
+    
+    const timer = setInterval(() => {
+      setCurrentMessageIndex(Math.floor(Math.random() * motivationalMessages.length))
+    }, interval)
+    
+    return () => clearInterval(timer)
   }, [])
 
   if (variant === 'compact') {
@@ -165,7 +166,7 @@ export function UserHeader({ showWelcome = true, variant = 'default', className 
 
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Clock className="h-4 w-4" />
-            <span className="capitalize">{getCurrentDate()}</span>
+            <span className="capitalize">{getCurrentDate}</span>
           </div>
         </div>
 
@@ -192,7 +193,7 @@ export function UserHeader({ showWelcome = true, variant = 'default', className 
       </div>
 
       {/* Mensagem motivacional */}
-      <div className={`mt-4 text-sm text-gray-600 font-medium italic text-center transition-opacity duration-500 ${fade ? 'opacity-0' : 'opacity-100'}`}>
+      <div className="mt-4 text-sm text-gray-600 font-medium italic text-center">
         {motivationalMessages[currentMessageIndex]}
       </div>
     </div>

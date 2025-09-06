@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Filter } from "lucide-react"
@@ -33,38 +33,51 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null)
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('30d')
 
-  useEffect(() => {
-    const carregarDados = async () => {
-      try {
-        setError(null)
-        const [clientesData, receitasData, despesasData] = await Promise.all([
-          obterClientes(),
-          obterReceitas(),
-          obterDespesas(),
-        ])
+  // Memoizar a função de carregamento
+  const carregarDados = useCallback(async () => {
+    try {
+      setError(null)
+      setLoading(true)
+      
+      // Carregar dados com timeout para mobile
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout ao carregar dados')), 15000)
+      )
+      
+      const dataPromise = Promise.all([
+        obterClientes(),
+        obterReceitas(),
+        obterDespesas(),
+      ])
+      
+      const [clientesData, receitasData, despesasData] = await Promise.race([
+        dataPromise,
+        timeoutPromise
+      ]) as [Cliente[], Receita[], Despesa[]]
 
-        console.log('Dados carregados:', { 
-          clientes: clientesData.length, 
-          receitas: receitasData.length, 
-          despesas: despesasData.length 
-        })
+      console.log('Dados carregados:', { 
+        clientes: clientesData.length, 
+        receitas: receitasData.length, 
+        despesas: despesasData.length 
+      })
 
-        setClientes(clientesData)
-        setReceitas(receitasData)
-        setDespesas(despesasData)
-      } catch (error) {
-        console.error("Erro ao carregar dados:", error)
-        setError("Erro ao carregar dados do dashboard")
-      } finally {
-        setLoading(false)
-      }
+      setClientes(clientesData)
+      setReceitas(receitasData)
+      setDespesas(despesasData)
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error)
+      setError("Erro ao carregar dados do dashboard. Tente recarregar a página.")
+    } finally {
+      setLoading(false)
     }
-
-    carregarDados()
   }, [])
 
+  useEffect(() => {
+    carregarDados()
+  }, [carregarDados])
+
   // Função para filtrar dados por período
-  const filterDataByPeriod = (data: (Receita | Despesa)[], period: PeriodFilter) => {
+  const filterDataByPeriod = useCallback((data: (Receita | Despesa)[], period: PeriodFilter) => {
     if (period === 'all') return data
     
     const now = new Date()
@@ -92,14 +105,24 @@ export default function HomePage() {
       const itemDate = typeof item.data === 'string' ? new Date(item.data) : item.data
       return itemDate >= startDate
     })
-  }
+  }, [])
 
   // Filtrar dados baseado no período selecionado
-  const receitasFiltradas = filterDataByPeriod(receitas, periodFilter) as Receita[]
-  const despesasFiltradas = filterDataByPeriod(despesas, periodFilter) as Despesa[]
+  const receitasFiltradas = useMemo(() => 
+    filterDataByPeriod(receitas, periodFilter) as Receita[], 
+    [receitas, periodFilter, filterDataByPeriod]
+  )
+  
+  const despesasFiltradas = useMemo(() => 
+    filterDataByPeriod(despesas, periodFilter) as Despesa[], 
+    [despesas, periodFilter, filterDataByPeriod]
+  )
   
   // Filtrar clientes por período de registro
-  const clientesFiltrados = periodFilter === 'all' ? clientes : clientes.filter((cliente) => {
+  const clientesFiltrados = useMemo(() => {
+    if (periodFilter === 'all') return clientes
+    
+    return clientes.filter((cliente) => {
     if (periodFilter === 'all') return true
     
     const now = new Date()
@@ -126,59 +149,71 @@ export default function HomePage() {
     const clienteDate = typeof cliente.dataRegistro === 'string' ? new Date(cliente.dataRegistro) : cliente.dataRegistro
     return clienteDate >= startDate
   })
+  }, [clientes, periodFilter])
 
-  const dashboardData: DashboardData = {
+  const dashboardData: DashboardData = useMemo(() => ({
     totalReceitas: receitasFiltradas.reduce((sum, r) => sum + r.valor, 0),
     totalDespesas: despesasFiltradas.reduce((sum, d) => sum + d.valor, 0),
     lucro: receitasFiltradas.reduce((sum, r) => sum + r.valor, 0) - despesasFiltradas.reduce((sum, d) => sum + d.valor, 0),
     totalClientes: clientesFiltrados.length,
     receitasMes: receitasFiltradas.reduce((sum, r) => sum + r.valor, 0),
     despesasMes: despesasFiltradas.reduce((sum, d) => sum + d.valor, 0),
-  }
+  }), [receitasFiltradas, despesasFiltradas, clientesFiltrados])
 
-  const getPeriodLabel = (period: PeriodFilter) => {
+  const getPeriodLabel = useCallback((period: PeriodFilter) => {
     return periodOptions.find(option => option.value === period)?.label || 'Período'
-  }
+  }, [])
+
+  // Componente de loading otimizado para mobile
+  const loadingComponent = useMemo(() => (
+    <ProtectedRoute>
+      <div className="flex h-screen bg-background">
+        <Sidebar />
+        <main className="flex-1 lg:ml-64 p-4 md:p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-center h-64">
+              <div className="text-muted-foreground">Carregando...</div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </ProtectedRoute>
+  ), [])
+
+  const errorComponent = useMemo(() => (
+    <ProtectedRoute>
+      <div className="flex h-screen bg-background">
+        <Sidebar />
+        <main className="flex-1 lg:ml-64 p-4 md:p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col items-center justify-center h-64 text-center">
+              <div className="text-red-600 mb-4">{error}</div>
+              <button 
+                onClick={carregarDados}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Tentar Novamente
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+    </ProtectedRoute>
+  ), [error, carregarDados])
 
   if (loading) {
-    return (
-      <ProtectedRoute>
-        <div className="flex h-screen bg-background">
-          <Sidebar />
-          <main className="flex-1 lg:ml-64 p-8">
-            <div className="max-w-7xl mx-auto">
-              <div className="flex items-center justify-center h-64">
-                <div className="text-muted-foreground">Carregando...</div>
-              </div>
-            </div>
-          </main>
-        </div>
-      </ProtectedRoute>
-    )
+    return loadingComponent
   }
 
   if (error) {
-    return (
-      <ProtectedRoute>
-        <div className="flex h-screen bg-background">
-          <Sidebar />
-          <main className="flex-1 lg:ml-64 p-8">
-            <div className="max-w-7xl mx-auto">
-              <div className="flex items-center justify-center h-64">
-                <div className="text-red-600">{error}</div>
-              </div>
-            </div>
-          </main>
-        </div>
-      </ProtectedRoute>
-    )
+    return errorComponent
   }
 
   return (
     <ProtectedRoute>
       <div className="flex h-screen bg-background">
         <Sidebar />
-        <main className="flex-1 lg:ml-64 p-8 overflow-auto">
+        <main className="flex-1 lg:ml-64 p-4 md:p-8 overflow-auto">
           <div className="max-w-7xl mx-auto space-y-8">
             <UserHeader />
 

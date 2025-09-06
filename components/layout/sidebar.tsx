@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { LayoutDashboard, Users, TrendingUp, TrendingDown, Menu, X, Shield, FolderKanban, FileText, Receipt, Settings } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import Image from "next/image"
 
 const navigation = [
@@ -38,20 +38,52 @@ export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const [messageIndex, setMessageIndex] = useState(0)
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % motivationalMessages.length)
-    }, 5000) // alterna a cada 5 segundos
-    return () => clearInterval(interval)
+  // Memoizar o fechamento da sidebar para mobile
+  const closeSidebar = useCallback(() => {
+    setIsOpen(false)
   }, [])
 
+  // Otimizar o efeito das mensagens motivacionais
+  useEffect(() => {
+    // Reduzir frequência em mobile para economizar recursos
+    const isMobile = window.innerWidth < 768
+    const interval = isMobile ? 10000 : 5000 // 10s em mobile, 5s em desktop
+    
+    const timer = setInterval(() => {
+      setMessageIndex((prev) => (prev + 1) % motivationalMessages.length)
+    }, interval)
+    
+    return () => clearInterval(timer)
+  }, [])
+
+  // Memoizar a lista de navegação
+  const navigationItems = useMemo(() => 
+    navigation.map((item) => {
+      const isActive = pathname === item.href
+      return (
+        <Link
+          key={item.name}
+          href={item.href}
+          onClick={closeSidebar}
+          className={cn(
+            "flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-150",
+            isActive
+              ? "bg-black text-white"
+              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+          )}
+        >
+          <item.icon className="mr-3 h-5 w-5" />
+          {item.name}
+        </Link>
+      )
+    }), [pathname, closeSidebar])
   return (
     <>
       {/* Botão mobile */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="p-2 rounded-md bg-white shadow-md border border-gray-200 hover:bg-gray-50 transition"
+          className="p-2 rounded-md bg-white shadow-md border border-gray-200 hover:bg-gray-50 transition-colors duration-200"
         >
           {isOpen ? <X className="h-5 w-5 text-gray-700" /> : <Menu className="h-5 w-5 text-gray-700" />}
         </button>
@@ -78,8 +110,10 @@ export function Sidebar() {
               height={120}
               className="object-contain mb-3"
               priority
+              loading="eager"
               onError={(e) => {
-                e.target.style.display = 'none'
+                const target = e.target as HTMLImageElement
+                target.style.display = 'none'
               }}
             />
             <div className="text-center">
@@ -90,25 +124,7 @@ export function Sidebar() {
 
           {/* Navegação */}
           <nav className="relative flex-1 px-4 py-6 space-y-2 z-10 overflow-y-auto">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => setIsOpen(false)}
-                  className={cn(
-                    "flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-150",
-                    isActive
-                      ? "bg-black text-white"
-                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                  )}
-                >
-                  <item.icon className="mr-3 h-5 w-5" />
-                  {item.name}
-                </Link>
-              )
-            })}
+            {navigationItems}
           </nav>
 
           {/* Rodapé apenas com mensagem motivacional */}
@@ -122,7 +138,7 @@ export function Sidebar() {
       </div>
 
       {/* Overlay mobile */}
-      {isOpen && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setIsOpen(false)} />}
+      {isOpen && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={closeSidebar} />}
     </>
   )
 }

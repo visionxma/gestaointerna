@@ -2,10 +2,51 @@ import { collection, addDoc, getDocs, query, orderBy, Timestamp, doc, updateDoc 
 import { db, auth } from "./firebase"
 import type { Cliente, Receita, Despesa, Senha, Projeto, AtividadeProjeto, Orcamento, Recibo } from "./types"
 
+// Cache para melhorar performance em mobile
+const cache = new Map<string, { data: any[], timestamp: number }>()
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
+
+const getCachedData = (key: string) => {
+  const cached = cache.get(key)
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data
+  }
+  return null
+}
+
+const setCachedData = (key: string, data: any[]) => {
+  cache.set(key, { data, timestamp: Date.now() })
+}
+
+// Função auxiliar para aguardar autenticação com timeout
+const waitForAuth = async (timeoutMs = 10000): Promise<boolean> => {
+  return new Promise((resolve) => {
+    let resolved = false
+    
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true
+        console.warn('Auth timeout - continuando sem autenticação')
+        resolve(false)
+      }
+    }, timeoutMs)
+    
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (!resolved) {
+        resolved = true
+        clearTimeout(timeout)
+        unsubscribe()
+        resolve(!!user)
+      }
+    })
+  })
+}
+
 // Clientes
 export const adicionarCliente = async (cliente: Omit<Cliente, "id">) => {
   try {
-    if (!auth.currentUser) {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
       throw new Error("Usuário não autenticado")
     }
 
@@ -14,6 +55,10 @@ export const adicionarCliente = async (cliente: Omit<Cliente, "id">) => {
       dataRegistro: Timestamp.fromDate(cliente.dataRegistro),
       registradoPor: auth.currentUser.displayName || auth.currentUser.email || "Usuário",
     })
+    
+    // Limpar cache após adicionar
+    cache.delete('clientes')
+    
     return docRef.id
   } catch (error) {
     console.error("Erro ao adicionar cliente:", error)
@@ -23,26 +68,30 @@ export const adicionarCliente = async (cliente: Omit<Cliente, "id">) => {
 
 export const obterClientes = async (): Promise<Cliente[]> => {
   try {
-    // Aguarda a inicialização do auth
-    await new Promise((resolve) => {
-      const unsubscribe = auth.onAuthStateChanged((user) => {
-        unsubscribe()
-        resolve(user)
-      })
-    })
+    // Verificar cache primeiro
+    const cached = getCachedData('clientes')
+    if (cached) {
+      return cached
+    }
 
-    if (!auth.currentUser) {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
       console.log("[v0] Usuário não autenticado, retornando array vazio")
       return []
     }
 
     const q = query(collection(db, "clientes"), orderBy("dataRegistro", "desc"))
     const querySnapshot = await getDocs(q)
-    return querySnapshot.docs.map((doc) => ({
+    const clientes = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
       dataRegistro: doc.data().dataRegistro.toDate(),
     })) as Cliente[]
+    
+    // Armazenar no cache
+    setCachedData('clientes', clientes)
+    
+    return clientes
   } catch (error) {
     console.error("Erro ao obter clientes:", error)
     return []
@@ -52,7 +101,8 @@ export const obterClientes = async (): Promise<Cliente[]> => {
 // Receitas
 export const adicionarReceita = async (receita: Omit<Receita, "id">) => {
   try {
-    if (!auth.currentUser) {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
       throw new Error("Usuário não autenticado")
     }
 
@@ -61,6 +111,10 @@ export const adicionarReceita = async (receita: Omit<Receita, "id">) => {
       data: Timestamp.fromDate(receita.data),
       registradoPor: auth.currentUser.displayName || auth.currentUser.email || "Usuário",
     })
+    
+    // Limpar cache após adicionar
+    cache.delete('receitas')
+    
     return docRef.id
   } catch (error) {
     console.error("Erro ao adicionar receita:", error)
@@ -70,26 +124,29 @@ export const adicionarReceita = async (receita: Omit<Receita, "id">) => {
 
 export const obterReceitas = async (): Promise<Receita[]> => {
   try {
-    // Aguarda a inicialização do auth
-    await new Promise((resolve) => {
-      const unsubscribe = auth.onAuthStateChanged((user) => {
-        unsubscribe()
-        resolve(user)
-      })
-    })
+    // Verificar cache primeiro
+    const cached = getCachedData('receitas')
+    if (cached) {
+      return cached
+    }
 
-    if (!auth.currentUser) {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
       console.log("[v0] Usuário não autenticado, retornando array vazio")
       return []
     }
-
     const q = query(collection(db, "receitas"), orderBy("data", "desc"))
     const querySnapshot = await getDocs(q)
-    return querySnapshot.docs.map((doc) => ({
+    const receitas = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
       data: doc.data().data.toDate(),
     })) as Receita[]
+    
+    // Armazenar no cache
+    setCachedData('receitas', receitas)
+    
+    return receitas
   } catch (error) {
     console.error("Erro ao obter receitas:", error)
     return []
@@ -99,7 +156,8 @@ export const obterReceitas = async (): Promise<Receita[]> => {
 // Despesas
 export const adicionarDespesa = async (despesa: Omit<Despesa, "id">) => {
   try {
-    if (!auth.currentUser) {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
       throw new Error("Usuário não autenticado")
     }
 
@@ -108,6 +166,10 @@ export const adicionarDespesa = async (despesa: Omit<Despesa, "id">) => {
       data: Timestamp.fromDate(despesa.data),
       registradoPor: auth.currentUser.displayName || auth.currentUser.email || "Usuário",
     })
+    
+    // Limpar cache após adicionar
+    cache.delete('despesas')
+    
     return docRef.id
   } catch (error) {
     console.error("Erro ao adicionar despesa:", error)
@@ -117,26 +179,29 @@ export const adicionarDespesa = async (despesa: Omit<Despesa, "id">) => {
 
 export const obterDespesas = async (): Promise<Despesa[]> => {
   try {
-    // Aguarda a inicialização do auth
-    await new Promise((resolve) => {
-      const unsubscribe = auth.onAuthStateChanged((user) => {
-        unsubscribe()
-        resolve(user)
-      })
-    })
+    // Verificar cache primeiro
+    const cached = getCachedData('despesas')
+    if (cached) {
+      return cached
+    }
 
-    if (!auth.currentUser) {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
       console.log("[v0] Usuário não autenticado, retornando array vazio")
       return []
     }
-
     const q = query(collection(db, "despesas"), orderBy("data", "desc"))
     const querySnapshot = await getDocs(q)
-    return querySnapshot.docs.map((doc) => ({
+    const despesas = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
       data: doc.data().data.toDate(),
     })) as Despesa[]
+    
+    // Armazenar no cache
+    setCachedData('despesas', despesas)
+    
+    return despesas
   } catch (error) {
     console.error("Erro ao obter despesas:", error)
     return []

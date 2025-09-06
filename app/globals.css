@@ -3,6 +3,61 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Otimizações específicas para mobile */
+@media (max-width: 768px) {
+  /* Reduzir animações em mobile para melhorar performance */
+  * {
+    animation-duration: 0.2s !important;
+    transition-duration: 0.2s !important;
+  }
+  
+  /* Melhorar scroll em mobile */
+  body {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  /* Otimizar inputs em mobile */
+  input, textarea, select {
+    font-size: 16px; /* Previne zoom no iOS */
+  }
+  
+  /* Reduzir sombras em mobile para melhorar performance */
+  .shadow-lg, .shadow-xl {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
+  }
+}
+
+/* Otimizações para dispositivos com pouca memória */
+@media (max-width: 480px) {
+  /* Simplificar gradientes */
+  .bg-gradient-to-br {
+    background: var(--background) !important;
+  }
+  
+  /* Reduzir blur effects */
+  .backdrop-blur-md {
+    backdrop-filter: none !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+  }
+}
+
+/* Melhorar performance de scroll */
+.overflow-auto {
+  scroll-behavior: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Otimizar animações para dispositivos lentos */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
