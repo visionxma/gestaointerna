@@ -100,13 +100,34 @@ export const obterClientes = async (): Promise<Cliente[]> => {
       dataRegistro: doc.data().dataRegistro.toDate(),
     })) as Cliente[]
 
+    const activeClientes = clientes.filter((cliente) => !cliente.excluido)
     // Armazenar no cache
-    setCachedData("clientes", clientes)
+    setCachedData("clientes", activeClientes)
 
-    return clientes
+    return activeClientes
   } catch (error) {
     console.error("Erro ao obter clientes:", error)
     return []
+  }
+}
+
+export const excluirCliente = async (clienteId: string) => {
+  try {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const docRef = doc(db, "clientes", clienteId)
+    await updateDoc(docRef, {
+      excluido: true,
+      dataExclusao: Timestamp.fromDate(new Date()),
+    })
+
+    cache.delete("clientes")
+  } catch (error) {
+    console.error("Erro ao excluir cliente:", error)
+    throw error
   }
 }
 
@@ -155,13 +176,34 @@ export const obterReceitas = async (): Promise<Receita[]> => {
       data: doc.data().data.toDate(),
     })) as Receita[]
 
+    const activeReceitas = receitas.filter((receita) => !receita.excluida)
     // Armazenar no cache
-    setCachedData("receitas", receitas)
+    setCachedData("receitas", activeReceitas)
 
-    return receitas
+    return activeReceitas
   } catch (error) {
     console.error("Erro ao obter receitas:", error)
     return []
+  }
+}
+
+export const excluirReceita = async (receitaId: string) => {
+  try {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const docRef = doc(db, "receitas", receitaId)
+    await updateDoc(docRef, {
+      excluida: true,
+      dataExclusao: Timestamp.fromDate(new Date()),
+    })
+
+    cache.delete("receitas")
+  } catch (error) {
+    console.error("Erro ao excluir receita:", error)
+    throw error
   }
 }
 
@@ -210,13 +252,34 @@ export const obterDespesas = async (): Promise<Despesa[]> => {
       data: doc.data().data.toDate(),
     })) as Despesa[]
 
+    const activeDespesas = despesas.filter((despesa) => !despesa.excluida)
     // Armazenar no cache
-    setCachedData("despesas", despesas)
+    setCachedData("despesas", activeDespesas)
 
-    return despesas
+    return activeDespesas
   } catch (error) {
     console.error("Erro ao obter despesas:", error)
     return []
+  }
+}
+
+export const excluirDespesa = async (despesaId: string) => {
+  try {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const docRef = doc(db, "despesas", despesaId)
+    await updateDoc(docRef, {
+      excluida: true,
+      dataExclusao: Timestamp.fromDate(new Date()),
+    })
+
+    cache.delete("despesas")
+  } catch (error) {
+    console.error("Erro ao excluir despesa:", error)
+    throw error
   }
 }
 
@@ -256,6 +319,24 @@ export const obterSenhas = async (): Promise<Senha[]> => {
   } catch (error) {
     console.error("Erro ao obter senhas:", error)
     return []
+  }
+}
+
+export const excluirSenha = async (senhaId: string) => {
+  try {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const docRef = doc(db, "senhas", senhaId)
+    await updateDoc(docRef, {
+      excluida: true,
+      dataExclusao: Timestamp.fromDate(new Date()),
+    })
+  } catch (error) {
+    console.error("Erro ao excluir senha:", error)
+    throw error
   }
 }
 
@@ -320,6 +401,25 @@ export const atualizarStatusProjeto = async (projetoId: string, status: Projeto[
     throw error
   }
 }
+
+export const excluirProjeto = async (projetoId: string) => {
+  try {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const docRef = doc(db, "projetos", projetoId)
+    await updateDoc(docRef, {
+      excluido: true,
+      dataExclusao: Timestamp.fromDate(new Date()),
+    })
+  } catch (error) {
+    console.error("Erro ao excluir projeto:", error)
+    throw error
+  }
+}
+
 // Atividades do Projeto
 export const adicionarAtividadeProjeto = async (atividade: Omit<AtividadeProjeto, "id">) => {
   try {
@@ -460,6 +560,25 @@ export const atualizarStatusOrcamento = async (orcamentoId: string, status: Orca
     throw error
   }
 }
+
+export const excluirOrcamento = async (orcamentoId: string) => {
+  try {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const docRef = doc(db, "orcamentos", orcamentoId)
+    await updateDoc(docRef, {
+      excluido: true,
+      dataExclusao: Timestamp.fromDate(new Date()),
+    })
+  } catch (error) {
+    console.error("Erro ao excluir orçamento:", error)
+    throw error
+  }
+}
+
 // Recibos
 export const adicionarRecibo = async (recibo: Omit<Recibo, "id">) => {
   try {
@@ -547,6 +666,24 @@ export const atualizarStatusRecibo = async (reciboId: string, status: Recibo["st
   }
 }
 
+export const excluirRecibo = async (reciboId: string) => {
+  try {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const docRef = doc(db, "recibos", reciboId)
+    await updateDoc(docRef, {
+      excluido: true,
+      dataExclusao: Timestamp.fromDate(new Date()),
+    })
+  } catch (error) {
+    console.error("Erro ao excluir recibo:", error)
+    throw error
+  }
+}
+
 // Kanban Boards
 export const adicionarBoard = async (board: Omit<KanbanBoard, "id">) => {
   try {
@@ -590,11 +727,34 @@ export const obterBoards = async (): Promise<KanbanBoard[]> => {
       dataCriacao: doc.data().dataCriacao.toDate(),
     })) as KanbanBoard[]
 
-    setCachedData("kanban_boards", boards)
-    return boards
+    const activeBoards = boards.filter((board) => !board.excluido)
+    setCachedData("kanban_boards", activeBoards)
+    return activeBoards
   } catch (error) {
     console.error("Erro ao obter boards:", error)
     return []
+  }
+}
+
+export const excluirBoard = async (boardId: string) => {
+  try {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const docRef = doc(db, "kanban_boards", boardId)
+    await updateDoc(docRef, {
+      excluido: true,
+      dataExclusao: Timestamp.fromDate(new Date()),
+    })
+
+    cache.delete("kanban_boards")
+    cache.delete(`kanban_columns_${boardId}`)
+    cache.delete(`kanban_tasks_${boardId}`)
+  } catch (error) {
+    console.error("Erro ao excluir board:", error)
+    throw error
   }
 }
 
@@ -635,7 +795,7 @@ export const obterColumns = async (boardId: string): Promise<KanbanColumn[]> => 
       ...doc.data(),
     })) as KanbanColumn[]
 
-    const filteredColumns = columns.filter((column) => column.boardId === boardId)
+    const filteredColumns = columns.filter((column) => column.boardId === boardId && !column.excluida)
     setCachedData(`kanban_columns_${boardId}`, filteredColumns)
     return filteredColumns
   } catch (error) {
@@ -691,7 +851,7 @@ export const obterTasks = async (boardId: string): Promise<KanbanTask[]> => {
       dataAtualizacao: doc.data().dataAtualizacao.toDate(),
     })) as KanbanTask[]
 
-    const filteredTasks = tasks.filter((task) => task.boardId === boardId)
+    const filteredTasks = tasks.filter((task) => task.boardId === boardId && !task.excluida)
     setCachedData(`kanban_tasks_${boardId}`, filteredTasks)
     return filteredTasks
   } catch (error) {
@@ -744,6 +904,32 @@ export const moverTask = async (taskId: string, novaColumnId: string, novaOrdem:
     })
   } catch (error) {
     console.error("Erro ao mover tarefa:", error)
+    throw error
+  }
+}
+
+export const excluirTask = async (taskId: string) => {
+  try {
+    const isAuthenticated = await waitForAuth(5000)
+    if (!isAuthenticated || !auth.currentUser) {
+      throw new Error("Usuário não autenticado")
+    }
+
+    const docRef = doc(db, "kanban_tasks", taskId)
+    await updateDoc(docRef, {
+      excluida: true,
+      dataExclusao: Timestamp.fromDate(new Date()),
+      dataAtualizacao: Timestamp.fromDate(new Date()),
+    })
+
+    // Limpar cache relacionado
+    cache.forEach((value, key) => {
+      if (key.startsWith("kanban_tasks_")) {
+        cache.delete(key)
+      }
+    })
+  } catch (error) {
+    console.error("Erro ao excluir tarefa:", error)
     throw error
   }
 }
