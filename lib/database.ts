@@ -708,30 +708,41 @@ export const adicionarBoard = async (board: Omit<KanbanBoard, "id">) => {
 
 export const obterBoards = async (): Promise<KanbanBoard[]> => {
   try {
+    console.log("[v0] Iniciando obterBoards")
+
     const cached = getCachedData("kanban_boards")
     if (cached) {
+      console.log("[v0] Retornando boards do cache:", cached.length)
       return cached
     }
 
-    const isAuthenticated = await waitForAuth(5000)
+    const isAuthenticated = await waitForAuth(15000)
     if (!isAuthenticated || !auth.currentUser) {
       console.log("[v0] Usuário não autenticado, retornando array vazio")
       return []
     }
 
-    const q = query(collection(db, "kanban_boards"), orderBy("dataCriacao", "desc"))
-    const querySnapshot = await getDocs(q)
-    const boards = querySnapshot.docs.map((doc) => ({
+    // Query sem orderBy para evitar problemas de índice
+    const querySnapshot = await getDocs(collection(db, "kanban_boards"))
+    console.log("[v0] Total de boards encontrados:", querySnapshot.docs.length)
+
+    const allBoards = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
-      dataCriacao: doc.data().dataCriacao.toDate(),
+      dataCriacao: doc.data().dataCriacao ? doc.data().dataCriacao.toDate() : new Date(),
     })) as KanbanBoard[]
 
-    const activeBoards = boards.filter((board) => !board.excluido)
+    const activeBoards = allBoards.filter((board) => !board.excluido)
+
+    // Ordenar manualmente por data de criação (mais recente primeiro)
+    activeBoards.sort((a, b) => b.dataCriacao.getTime() - a.dataCriacao.getTime())
+
+    console.log("[v0] Boards ativos:", activeBoards.length)
+
     setCachedData("kanban_boards", activeBoards)
     return activeBoards
   } catch (error) {
-    console.error("Erro ao obter boards:", error)
+    console.error("[v0] Erro ao obter boards:", error)
     return []
   }
 }
@@ -799,29 +810,44 @@ export const adicionarColumn = async (column: Omit<KanbanColumn, "id">) => {
 
 export const obterColumns = async (boardId: string): Promise<KanbanColumn[]> => {
   try {
+    console.log("[v0] Iniciando obterColumns para boardId:", boardId)
+
     const cached = getCachedData(`kanban_columns_${boardId}`)
     if (cached) {
+      console.log("[v0] Retornando colunas do cache:", cached.length)
       return cached
     }
 
-    const isAuthenticated = await waitForAuth(5000)
+    const isAuthenticated = await waitForAuth(15000)
     if (!isAuthenticated || !auth.currentUser) {
       console.log("[v0] Usuário não autenticado, retornando array vazio")
       return []
     }
 
-    const q = query(collection(db, "kanban_columns"), orderBy("ordem", "asc"))
-    const querySnapshot = await getDocs(q)
-    const columns = querySnapshot.docs.map((doc) => ({
+    // Query sem orderBy para evitar problemas de índice
+    const querySnapshot = await getDocs(collection(db, "kanban_columns"))
+    console.log("[v0] Total de colunas encontradas:", querySnapshot.docs.length)
+
+    const allColumns = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     })) as KanbanColumn[]
 
-    const filteredColumns = columns.filter((column) => column.boardId === boardId && !column.excluida)
+    const filteredColumns = allColumns.filter((column) => {
+      const isCorrectBoard = column.boardId === boardId
+      const isNotDeleted = !column.excluida
+      return isCorrectBoard && isNotDeleted
+    })
+
+    // Ordenar manualmente por ordem
+    filteredColumns.sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
+
+    console.log("[v0] Colunas filtradas para o board:", filteredColumns.length)
+
     setCachedData(`kanban_columns_${boardId}`, filteredColumns)
     return filteredColumns
   } catch (error) {
-    console.error("Erro ao obter colunas:", error)
+    console.error("[v0] Erro ao obter colunas:", error)
     return []
   }
 }
@@ -869,55 +895,93 @@ export const excluirColumn = async (columnId: string, boardId: string) => {
 // Kanban Tasks
 export const adicionarTask = async (task: Omit<KanbanTask, "id">) => {
   try {
-    const isAuthenticated = await waitForAuth(5000)
+    console.log("[v0] Iniciando adicionarTask:", task.titulo)
+
+    const isAuthenticated = await waitForAuth(15000)
     if (!isAuthenticated || !auth.currentUser) {
       throw new Error("Usuário não autenticado")
     }
 
-    const docRef = await addDoc(collection(db, "kanban_tasks"), {
+    const taskData = {
       ...task,
       prazo: task.prazo ? Timestamp.fromDate(task.prazo) : null,
       dataCriacao: Timestamp.fromDate(task.dataCriacao),
       dataAtualizacao: Timestamp.fromDate(task.dataAtualizacao),
       registradoPor: auth.currentUser.displayName || auth.currentUser.email || "Usuário",
-    })
+      excluida: false, // Garantir que não está marcada como excluída
+    }
 
+    console.log("[v0] Dados da tarefa a serem salvos:", taskData)
+
+    const docRef = await addDoc(collection(db, "kanban_tasks"), taskData)
+    console.log("[v0] Tarefa criada com ID:", docRef.id)
+
+    // Limpar cache para forçar reload
     cache.delete(`kanban_tasks_${task.boardId}`)
+
     return docRef.id
   } catch (error) {
-    console.error("Erro ao adicionar tarefa:", error)
+    console.error("[v0] Erro ao adicionar tarefa:", error)
     throw error
   }
 }
 
 export const obterTasks = async (boardId: string): Promise<KanbanTask[]> => {
   try {
+    console.log("[v0] Iniciando obterTasks para boardId:", boardId)
+
+    // Verificar cache primeiro
     const cached = getCachedData(`kanban_tasks_${boardId}`)
     if (cached) {
+      console.log("[v0] Retornando tarefas do cache:", cached.length)
       return cached
     }
 
-    const isAuthenticated = await waitForAuth(5000)
+    // Aguardar autenticação com timeout mais longo para GitHub Pages
+    const isAuthenticated = await waitForAuth(15000)
     if (!isAuthenticated || !auth.currentUser) {
       console.log("[v0] Usuário não autenticado, retornando array vazio")
       return []
     }
 
-    const q = query(collection(db, "kanban_tasks"), orderBy("ordem", "asc"))
-    const querySnapshot = await getDocs(q)
-    const tasks = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-      prazo: doc.data().prazo ? doc.data().prazo.toDate() : undefined,
-      dataCriacao: doc.data().dataCriacao.toDate(),
-      dataAtualizacao: doc.data().dataAtualizacao.toDate(),
-    })) as KanbanTask[]
+    console.log("[v0] Usuário autenticado, buscando tarefas...")
 
-    const filteredTasks = tasks.filter((task) => task.boardId === boardId && !task.excluida)
+    // Query sem orderBy para evitar problemas de índice no GitHub Pages
+    const querySnapshot = await getDocs(collection(db, "kanban_tasks"))
+    console.log("[v0] Total de documentos encontrados:", querySnapshot.docs.length)
+
+    const allTasks = querySnapshot.docs.map((doc) => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        ...data,
+        prazo: data.prazo ? data.prazo.toDate() : undefined,
+        dataCriacao: data.dataCriacao ? data.dataCriacao.toDate() : new Date(),
+        dataAtualizacao: data.dataAtualizacao ? data.dataAtualizacao.toDate() : new Date(),
+      }
+    }) as KanbanTask[]
+
+    console.log("[v0] Todas as tarefas processadas:", allTasks.length)
+
+    // Filtrar por boardId e não excluídas
+    const filteredTasks = allTasks.filter((task) => {
+      const isCorrectBoard = task.boardId === boardId
+      const isNotDeleted = !task.excluida
+      console.log("[v0] Tarefa", task.id, "- Board correto:", isCorrectBoard, "- Não excluída:", isNotDeleted)
+      return isCorrectBoard && isNotDeleted
+    })
+
+    console.log("[v0] Tarefas filtradas para o board:", filteredTasks.length)
+
+    // Ordenar manualmente por ordem
+    filteredTasks.sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
+
+    // Armazenar no cache
     setCachedData(`kanban_tasks_${boardId}`, filteredTasks)
+
     return filteredTasks
   } catch (error) {
-    console.error("Erro ao obter tarefas:", error)
+    console.error("[v0] Erro ao obter tarefas:", error)
     return []
   }
 }
