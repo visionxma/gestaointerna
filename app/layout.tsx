@@ -49,23 +49,27 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               // iOS Safari compatibility fixes
-              if ('serviceWorker' in navigator) {
+              if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
                 window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js', {
-                    scope: '/'
-                  })
-                  .then(function(registration) {
-                    console.log('[App] SW registered successfully:', registration.scope);
-                    
-                    // Handle updates
-                    registration.addEventListener('updatefound', () => {
-                      console.log('[App] SW update found');
+                  // Verificar se o SW existe antes de tentar registrar
+                  fetch('/sw.js', { method: 'HEAD' })
+                    .then(() => {
+                      return navigator.serviceWorker.register('/sw.js', {
+                        scope: '/'
+                      });
+                    })
+                    .then(function(registration) {
+                      console.log('[App] SW registered successfully:', registration.scope);
+                      
+                      // Handle updates
+                      registration.addEventListener('updatefound', () => {
+                        console.log('[App] SW update found');
+                      });
+                    })
+                    .catch(function(error) {
+                      console.log('[App] SW registration failed or SW not found:', error);
+                      // Continue without SW - não é crítico
                     });
-                  })
-                  .catch(function(error) {
-                    console.log('[App] SW registration failed:', error);
-                    // Continue without SW on iOS Safari if it fails
-                  });
                 });
               }
 
@@ -80,6 +84,13 @@ export default function RootLayout({
                   viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover');
                 }
               }
+
+              window.addEventListener('error', function(e) {
+                if (e.message && e.message.includes('Hydration')) {
+                  console.warn('[App] Hydration error detected, but continuing:', e.message);
+                  e.preventDefault();
+                }
+              });
             `,
           }}
         />
