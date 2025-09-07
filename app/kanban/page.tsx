@@ -1,54 +1,53 @@
 "use client"
 
-import type React from "react"
-
-import { useEffect, useState, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { ConfirmationModal } from "@/components/ui/confirmation-modal"
+import { ProtectedRoute } from "@/components/auth/protected-route"
+import { Sidebar } from "@/components/layout/sidebar"
 import {
   Plus,
+  MoreVertical,
+  Edit,
+  Trash2,
+  Settings,
+  ArrowLeft,
+  Search,
+  Filter,
   Calendar,
   User,
   AlertCircle,
-  Edit,
-  Trash2,
-  MoreVertical,
-  Kanban,
-  Eye,
-  ArrowRight,
-  ArrowLeft,
+  CheckCircle,
+  Clock,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { ConfirmationModal } from "@/components/ui/confirmation-modal"
 import {
   obterBoards,
+  adicionarBoard,
+  excluirBoard,
   obterColumns,
   obterTasks,
-  adicionarBoard,
-  adicionarColumn,
   adicionarTask,
   moverTask,
-  atualizarTask,
-  atualizarBoard,
-  atualizarColumn,
-  excluirTask,
-  excluirBoard,
-  excluirColumn,
 } from "@/lib/database"
-import type { KanbanBoard, KanbanColumn, KanbanTask } from "@/lib/types"
-import { ProtectedRoute } from "@/components/auth/protected-route"
-import { Sidebar } from "@/components/layout/sidebar"
 
 const prioridadeCores = {
   baixa: "bg-green-100 text-green-800 border-green-200",
   media: "bg-yellow-100 text-yellow-800 border-yellow-200",
   alta: "bg-red-100 text-red-800 border-red-200",
+}
+
+const prioridadeIcons = {
+  baixa: CheckCircle,
+  media: Clock,
+  alta: AlertCircle,
 }
 
 const coresDisponiveis = [
@@ -72,36 +71,51 @@ const responsaveis = [
 ]
 
 export default function KanbanPage() {
-  const [boards, setBoards] = useState<KanbanBoard[]>([])
-  const [selectedBoard, setSelectedBoard] = useState<KanbanBoard | null>(null)
-  const [viewMode, setViewMode] = useState<"list" | "board">("list")
-  const [columns, setColumns] = useState<KanbanColumn[]>([])
-  const [tasks, setTasks] = useState<KanbanTask[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterResponsavel, setFilterResponsavel] = useState<string>("todos")
-  const [filterPrioridade, setFilterPrioridade] = useState<string>("todas")
-  const [draggedTask, setDraggedTask] = useState<KanbanTask | null>(null)
-  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
+  const [ui, setUi] = useState({
+    viewMode: "list" as "list" | "board",
+    loading: true,
+    creatingBoard: false,
+    isDeleting: false,
+  })
 
-  // Estados para modais
-  const [showNewBoard, setShowNewBoard] = useState(false)
-  const [showNewTask, setShowNewTask] = useState(false)
-  const [showEditTask, setShowEditTask] = useState(false)
-  const [showEditColumn, setShowEditColumn] = useState(false)
-  const [showBoardSettings, setShowBoardSettings] = useState(false)
-  const [selectedColumn, setSelectedColumn] = useState<string>("")
-  const [editingTask, setEditingTask] = useState<KanbanTask | null>(null)
-  const [editingColumn, setEditingColumn] = useState<KanbanColumn | null>(null)
+  const [modals, setModals] = useState({
+    showNewBoard: false,
+    showNewTask: false,
+    showEditTask: false,
+    showEditColumn: false,
+    showBoardSettings: false,
+    showDeleteBoardConfirm: false,
+    showDeleteTaskConfirm: false,
+    showDeleteColumnConfirm: false,
+  })
 
-  // Estados para modais de confirmação
-  const [showDeleteBoardConfirm, setShowDeleteBoardConfirm] = useState(false)
-  const [showDeleteTaskConfirm, setShowDeleteTaskConfirm] = useState(false)
-  const [showDeleteColumnConfirm, setShowDeleteColumnConfirm] = useState(false)
-  const [boardToDelete, setBoardToDelete] = useState<KanbanBoard | null>(null)
-  const [taskToDelete, setTaskToDelete] = useState<KanbanTask | null>(null)
-  const [columnToDelete, setColumnToDelete] = useState<KanbanColumn | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const [filters, setFilters] = useState({
+    searchTerm: "",
+    responsavel: "todos",
+    prioridade: "todas",
+  })
+
+  const [dragState, setDragState] = useState({
+    draggedTask: null,
+    dragOverColumn: null,
+  })
+
+  const [deleteTargets, setDeleteTargets] = useState({
+    boardToDelete: null,
+    taskToDelete: null,
+    columnToDelete: null,
+  })
+
+  // Estados principais do KanBan
+  const [boards, setBoards] = useState([])
+  const [selectedBoard, setSelectedBoard] = useState(null)
+  const [columns, setColumns] = useState([])
+  const [tasks, setTasks] = useState([])
+
+  // Estados para seleções e edição
+  const [selectedColumn, setSelectedColumn] = useState("")
+  const [editingTask, setEditingTask] = useState(null)
+  const [editingColumn, setEditingColumn] = useState(null)
 
   // Estados para formulários
   const [newBoard, setNewBoard] = useState({ nome: "", descricao: "", corFundo: "#f8fafc" })
@@ -109,7 +123,7 @@ export default function KanbanPage() {
     titulo: "",
     descricao: "",
     responsavel: "",
-    prioridade: "media" as const,
+    prioridade: "media",
     prazo: "",
   })
   const [editColumnData, setEditColumnData] = useState({
@@ -118,39 +132,61 @@ export default function KanbanPage() {
     corTexto: "#ffffff",
   })
 
-  const [creatingBoard, setCreatingBoard] = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      const matchesSearch =
+        task.titulo.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+        task.descricao?.toLowerCase().includes(filters.searchTerm.toLowerCase())
+      const matchesResponsavel = filters.responsavel === "todos" || task.responsavel === filters.responsavel
+      const matchesPrioridade = filters.prioridade === "todas" || task.prioridade === filters.prioridade
+
+      return matchesSearch && matchesResponsavel && matchesPrioridade
+    })
+  }, [tasks, filters.searchTerm, filters.responsavel, filters.prioridade])
+
+  const responsaveisList = useMemo(() => {
+    return Array.from(new Set(tasks.map((t) => t.responsavel).filter(Boolean)))
+  }, [tasks])
+
+  const tasksByColumn = useMemo(() => {
+    const grouped = {}
+    filteredTasks.forEach((task) => {
+      if (!grouped[task.columnId]) {
+        grouped[task.columnId] = []
+      }
+      grouped[task.columnId].push(task)
+    })
+
+    // Ordenar tasks dentro de cada coluna
+    Object.keys(grouped).forEach((columnId) => {
+      grouped[columnId].sort((a, b) => a.ordem - b.ordem)
+    })
+
+    return grouped
+  }, [filteredTasks])
 
   const carregarDados = useCallback(async () => {
     try {
-      console.log("[v0] Carregando boards...")
-      setLoading(true)
+      setUi((prev) => ({ ...prev, loading: true }))
       const boardsData = await obterBoards()
-      console.log("[v0] Boards carregados:", boardsData.length)
       setBoards(boardsData)
-
-      // if (boardsData.length > 0 && !selectedBoard) {
-      //   setSelectedBoard(boardsData[0])
-      //   console.log("[v0] Board selecionado:", boardsData[0].nome)
-      // }
     } catch (error) {
-      console.error("[v0] Erro ao carregar boards:", error)
+      console.error("Erro ao carregar boards:", error)
     } finally {
-      setLoading(false)
+      setUi((prev) => ({ ...prev, loading: false }))
     }
   }, [])
 
-  const carregarBoardData = useCallback(async (boardId: string) => {
+  const carregarDadosBoard = useCallback(async (boardId) => {
     try {
-      console.log("[v0] Carregando dados do board:", boardId)
-      const [columnsData, tasksData] = await Promise.all([obterColumns(boardId), obterTasks(boardId)])
-
-      console.log("[v0] Colunas carregadas:", columnsData.length)
-      console.log("[v0] Tarefas carregadas:", tasksData.length)
-      setColumns(columnsData)
+      setUi((prev) => ({ ...prev, loading: true }))
+      const [colunasData, tasksData] = await Promise.all([obterColumns(boardId), obterTasks(boardId)])
+      setColumns(colunasData)
       setTasks(tasksData)
     } catch (error) {
-      console.error("[v0] Erro ao carregar dados do board:", error)
+      console.error("Erro ao carregar dados do board:", error)
+    } finally {
+      setUi((prev) => ({ ...prev, loading: false }))
     }
   }, [])
 
@@ -158,145 +194,40 @@ export default function KanbanPage() {
     carregarDados()
   }, [carregarDados])
 
-  useEffect(() => {
-    if (selectedBoard) {
-      carregarBoardData(selectedBoard.id)
-    }
-  }, [selectedBoard, carregarBoardData])
+  const entrarNoQuadro = useCallback(
+    async (board) => {
+      setSelectedBoard(board)
+      setUi((prev) => ({ ...prev, viewMode: "board" }))
+      await carregarDadosBoard(board.id)
+    },
+    [carregarDadosBoard],
+  )
 
-  const criarBoard = async () => {
+  const voltarParaLista = useCallback(() => {
+    setSelectedBoard(null)
+    setUi((prev) => ({ ...prev, viewMode: "list" }))
+    setColumns([])
+    setTasks([])
+  }, [])
+
+  const criarBoard = useCallback(async () => {
     if (!newBoard.nome.trim()) return
 
     try {
-      setCreatingBoard(true)
-      console.log("[v0] Criando board:", newBoard.nome)
-      const boardId = await adicionarBoard({
-        nome: newBoard.nome,
-        descricao: newBoard.descricao,
-        corFundo: newBoard.corFundo,
-        dataCriacao: new Date(),
-      })
-
-      // Criar colunas padrão com cores personalizadas
-      const colunasDefault = [
-        { nome: "A Fazer", ordem: 0, cor: "#ef4444", corTexto: "#ffffff" },
-        { nome: "Em Andamento", ordem: 1, cor: "#f59e0b", corTexto: "#ffffff" },
-        { nome: "Concluído", ordem: 2, cor: "#10b981", corTexto: "#ffffff" },
-      ]
-
-      console.log("[v0] Criando colunas padrão...")
-      for (const coluna of colunasDefault) {
-        await adicionarColumn({
-          boardId,
-          nome: coluna.nome,
-          ordem: coluna.ordem,
-          cor: coluna.cor,
-          corTexto: coluna.corTexto,
-        })
-      }
-
+      setUi((prev) => ({ ...prev, creatingBoard: true }))
+      await adicionarBoard(newBoard.nome, newBoard.descricao, newBoard.corFundo)
       setNewBoard({ nome: "", descricao: "", corFundo: "#f8fafc" })
-      setShowNewBoard(false)
+      setModals((prev) => ({ ...prev, showNewBoard: false }))
       await carregarDados()
-      console.log("[v0] Board criado com sucesso")
     } catch (error) {
-      console.error("[v0] Erro ao criar board:", error)
+      console.error("Erro ao criar board:", error)
     } finally {
-      setCreatingBoard(false)
+      setUi((prev) => ({ ...prev, creatingBoard: false }))
     }
-  }
+  }, [newBoard, carregarDados])
 
-  const entrarNoQuadro = (board: KanbanBoard) => {
-    setSelectedBoard(board)
-    setViewMode("board")
-    setNewBoard((prev) => ({ ...prev, corFundo: board.corFundo || "#f8fafc" }))
-  }
-
-  const voltarParaLista = () => {
-    setViewMode("list")
-    setSelectedBoard(null)
-  }
-
-  const abrirEdicaoColumn = (column: KanbanColumn) => {
-    setEditingColumn(column)
-    setEditColumnData({
-      nome: column.nome,
-      cor: column.cor || "#3b82f6",
-      corTexto: column.corTexto || "#ffffff",
-    })
-    setShowEditColumn(true)
-  }
-
-  const salvarEdicaoColumn = async () => {
-    if (!editingColumn || !editColumnData.nome.trim()) return
-
-    try {
-      console.log("[v0] Editando coluna:", editingColumn.id)
-      await atualizarColumn(editingColumn.id, {
-        nome: editColumnData.nome,
-        cor: editColumnData.cor,
-        corTexto: editColumnData.corTexto,
-        boardId: editingColumn.boardId,
-      })
-
-      setEditingColumn(null)
-      setShowEditColumn(false)
-
-      if (selectedBoard) {
-        await carregarBoardData(selectedBoard.id)
-      }
-      console.log("[v0] Coluna editada com sucesso")
-    } catch (error) {
-      console.error("[v0] Erro ao editar coluna:", error)
-    }
-  }
-
-  const confirmarExclusaoColumn = (column: KanbanColumn) => {
-    setColumnToDelete(column)
-    setShowDeleteColumnConfirm(true)
-  }
-
-  const excluirColumnHandler = async () => {
-    if (!columnToDelete || !selectedBoard) return
-
-    try {
-      setIsDeleting(true)
-      console.log("[v0] Excluindo coluna:", columnToDelete.nome)
-      await excluirColumn(columnToDelete.id, selectedBoard.id)
-
-      await carregarBoardData(selectedBoard.id)
-      setShowDeleteColumnConfirm(false)
-      setColumnToDelete(null)
-      console.log("[v0] Coluna excluída com sucesso")
-    } catch (error) {
-      console.error("[v0] Erro ao excluir coluna:", error)
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
-  const salvarConfiguracaoBoard = async () => {
-    if (!selectedBoard) return
-
-    try {
-      console.log("[v0] Atualizando configurações do board")
-      await atualizarBoard(selectedBoard.id, {
-        corFundo: newBoard.corFundo,
-      })
-
-      setSelectedBoard({ ...selectedBoard, corFundo: newBoard.corFundo })
-      setShowBoardSettings(false)
-      console.log("[v0] Configurações do board atualizadas")
-    } catch (error) {
-      console.error("[v0] Erro ao atualizar board:", error)
-    }
-  }
-
-  const criarTask = async () => {
-    if (!newTask.titulo.trim() || !selectedColumn || !selectedBoard) {
-      console.log("[v0] Dados insuficientes para criar tarefa")
-      return
-    }
+  const criarTask = useCallback(async () => {
+    if (!newTask.titulo.trim() || !selectedColumn || !selectedBoard) return
 
     try {
       console.log("[v0] Criando tarefa:", newTask.titulo, "na coluna:", selectedColumn)
@@ -312,9 +243,6 @@ export default function KanbanPage() {
         prioridade: newTask.prioridade,
         prazo: newTask.prazo ? new Date(newTask.prazo) : undefined,
         ordem: novaOrdem,
-        etiquetas: [],
-        dataCriacao: new Date(),
-        dataAtualizacao: new Date(),
       })
 
       setNewTask({
@@ -324,293 +252,113 @@ export default function KanbanPage() {
         prioridade: "media",
         prazo: "",
       })
-      setSelectedColumn("")
-      setShowNewTask(false)
-
-      await carregarBoardData(selectedBoard.id)
-      console.log("[v0] Tarefa criada com sucesso")
+      setModals((prev) => ({ ...prev, showNewTask: false }))
+      await carregarDadosBoard(selectedBoard.id)
     } catch (error) {
-      console.error("[v0] Erro ao criar tarefa:", error)
+      console.error("Erro ao criar task:", error)
     }
-  }
+  }, [newTask, selectedColumn, selectedBoard, tasks, carregarDadosBoard])
 
-  const editarTask = async () => {
-    if (!editingTask || !newTask.titulo.trim()) return
-
-    try {
-      console.log("[v0] Editando tarefa:", editingTask.id)
-      await atualizarTask(editingTask.id, {
-        titulo: newTask.titulo,
-        descricao: newTask.descricao,
-        responsavel: newTask.responsavel,
-        prioridade: newTask.prioridade,
-        prazo: newTask.prazo ? new Date(newTask.prazo) : undefined,
-        dataAtualizacao: new Date(),
-      })
-
-      setNewTask({
-        titulo: "",
-        descricao: "",
-        responsavel: "",
-        prioridade: "media",
-        prazo: "",
-      })
-      setEditingTask(null)
-      setShowEditTask(false)
-
-      if (selectedBoard) {
-        await carregarBoardData(selectedBoard.id)
-      }
-      console.log("[v0] Tarefa editada com sucesso")
-    } catch (error) {
-      console.error("[v0] Erro ao editar tarefa:", error)
-    }
-  }
-
-  const confirmarExclusaoTask = (task: KanbanTask) => {
-    setTaskToDelete(task)
-    setShowDeleteTaskConfirm(true)
-  }
-
-  const excluirTaskHandler = async () => {
-    if (!taskToDelete) return
-
-    try {
-      setIsDeleting(true)
-      console.log("[v0] Excluindo tarefa:", taskToDelete.titulo)
-      await excluirTask(taskToDelete.id)
-
-      if (selectedBoard) {
-        await carregarBoardData(selectedBoard.id)
-      }
-      setShowDeleteTaskConfirm(false)
-      setTaskToDelete(null)
-      console.log("[v0] Tarefa excluída com sucesso")
-    } catch (error) {
-      console.error("[v0] Erro ao excluir tarefa:", error)
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
-  const handleDragStart = (e: React.DragEvent, task: KanbanTask) => {
-    console.log("[v0] Iniciando drag da tarefa:", task.titulo)
-    setDraggedTask(task)
+  const handleDragStart = useCallback((e, task) => {
+    setDragState({ draggedTask: task, dragOverColumn: null })
     e.dataTransfer.effectAllowed = "move"
-    e.dataTransfer.setData("text/plain", task.id)
+  }, [])
 
-    // Add visual feedback to the dragged element
-    if (e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.style.opacity = "0.5"
-    }
-  }
+  const handleDragEnd = useCallback(() => {
+    setDragState({ draggedTask: null, dragOverColumn: null })
+  }, [])
 
-  const handleDragEnd = (e: React.DragEvent) => {
-    // Reset visual feedback
-    if (e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.style.opacity = "1"
-    }
-    setDraggedTask(null)
-    setDragOverColumn(null)
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = useCallback((e, columnId) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = "move"
-  }
+    setDragState((prev) => ({ ...prev, dragOverColumn: columnId }))
+  }, [])
 
-  const handleDragEnter = (e: React.DragEvent, columnId: string) => {
-    e.preventDefault()
-    if (draggedTask && draggedTask.columnId !== columnId) {
-      setDragOverColumn(columnId)
-    }
-  }
+  const handleDrop = useCallback(
+    async (e, columnId) => {
+      e.preventDefault()
+      const { draggedTask } = dragState
 
-  const handleDragLeave = (e: React.DragEvent) => {
-    // Only clear if we're leaving the column entirely
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setDragOverColumn(null)
-    }
-  }
-
-  const handleDrop = async (e: React.DragEvent, columnId: string) => {
-    e.preventDefault()
-    setDragOverColumn(null)
-
-    if (!draggedTask || draggedTask.columnId === columnId) {
-      console.log("[v0] Drop cancelado - mesma coluna ou sem tarefa")
-      setDraggedTask(null)
-      return
-    }
-
-    try {
-      console.log("[v0] Movendo tarefa:", draggedTask.titulo, "para coluna:", columnId)
-
-      // Optimistic update - update UI immediately
-      const updatedTasks = tasks.map((task) => (task.id === draggedTask.id ? { ...task, columnId: columnId } : task))
-
-      // Update local state immediately for better UX
-      const tasksNaColuna = updatedTasks.filter((t) => t.columnId === columnId && t.id !== draggedTask.id)
-      const novaOrdem = tasksNaColuna.length
-
-      // Update database
-      await moverTask(draggedTask.id, columnId, novaOrdem)
-
-      // Reload data to ensure consistency
-      if (selectedBoard) {
-        await carregarBoardData(selectedBoard.id)
+      if (!draggedTask || draggedTask.columnId === columnId) {
+        setDragState({ draggedTask: null, dragOverColumn: null })
+        return
       }
-      console.log("[v0] Tarefa movida com sucesso")
-    } catch (error) {
-      console.error("[v0] Erro ao mover tarefa:", error)
-      // Reload data on error to revert optimistic update
-      if (selectedBoard) {
-        await carregarBoardData(selectedBoard.id)
+
+      try {
+        console.log("[v0] Movendo tarefa:", draggedTask.titulo, "para coluna:", columnId)
+
+        // Optimistic update - update UI immediately
+        const updatedTasks = tasks.map((task) => (task.id === draggedTask.id ? { ...task, columnId: columnId } : task))
+
+        // Update local state immediately for better UX
+        const tasksNaColuna = updatedTasks.filter((t) => t.columnId === columnId && t.id !== draggedTask.id)
+        const novaOrdem = tasksNaColuna.length
+
+        // Update database
+        await moverTask(draggedTask.id, columnId, novaOrdem)
+
+        // Reload data to ensure consistency
+        if (selectedBoard) {
+          await carregarDadosBoard(selectedBoard.id)
+        }
+      } catch (error) {
+        console.error("Erro ao mover task:", error)
+      } finally {
+        setDragState({ draggedTask: null, dragOverColumn: null })
       }
-    }
+    },
+    [dragState, tasks, selectedBoard, carregarDadosBoard],
+  )
 
-    setDraggedTask(null)
-  }
+  const confirmarExclusaoBoard = useCallback((board) => {
+    setDeleteTargets((prev) => ({ ...prev, boardToDelete: board }))
+    setModals((prev) => ({ ...prev, showDeleteBoardConfirm: true }))
+  }, [])
 
-  const handleTouchStart = (e: React.TouchEvent, task: KanbanTask) => {
-    setDraggedTask(task)
-  }
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault()
-    const touch = e.touches[0]
-    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY)
-    const columnElement = elementBelow?.closest("[data-column-id]")
-
-    if (columnElement) {
-      const columnId = columnElement.getAttribute("data-column-id")
-      if (columnId && draggedTask && draggedTask.columnId !== columnId) {
-        setDragOverColumn(columnId)
-      }
-    }
-  }
-
-  const handleTouchEnd = async (e: React.TouchEvent) => {
-    if (!draggedTask) return
-
-    const touch = e.changedTouches[0]
-    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY)
-    const columnElement = elementBelow?.closest("[data-column-id]")
-
-    if (columnElement) {
-      const columnId = columnElement.getAttribute("data-column-id")
-      if (columnId && columnId !== draggedTask.columnId) {
-        await handleDrop({ preventDefault: () => {} } as any, columnId)
-      }
-    }
-
-    setDraggedTask(null)
-    setDragOverColumn(null)
-  }
-
-  const abrirEdicaoTask = (task: KanbanTask) => {
-    setEditingTask(task)
-    setNewTask({
-      titulo: task.titulo,
-      descricao: task.descricao || "",
-      responsavel: task.responsavel || "",
-      prioridade: task.prioridade,
-      prazo: task.prazo ? task.prazo.toISOString().split("T")[0] : "",
-    })
-    setShowEditTask(true)
-  }
-
-  const abrirNovaTask = (columnId: string) => {
-    console.log("[v0] Abrindo modal para nova tarefa na coluna:", columnId)
-    setSelectedColumn(columnId)
-    setNewTask({
-      titulo: "",
-      descricao: "",
-      responsavel: "",
-      prioridade: "media" as const,
-      prazo: "",
-    })
-    setShowNewTask(true)
-  }
-
-  const filteredTasks = tasks.filter((task) => {
-    const matchesSearch =
-      task.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.descricao?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesResponsavel = filterResponsavel === "todos" || task.responsavel === filterResponsavel
-    const matchesPrioridade = filterPrioridade === "todas" || task.prioridade === filterPrioridade
-
-    return matchesSearch && matchesResponsavel && matchesPrioridade
-  })
-
-  const responsaveisList = Array.from(new Set(tasks.map((t) => t.responsavel).filter(Boolean)))
-
-  const confirmarExclusaoBoard = (board: KanbanBoard) => {
-    setBoardToDelete(board)
-    setShowDeleteBoardConfirm(true)
-  }
-
-  const excluirBoardHandler = async () => {
+  const excluirBoardConfirmado = useCallback(async () => {
+    const { boardToDelete } = deleteTargets
     if (!boardToDelete) return
 
     try {
-      setIsDeleting(true)
-      console.log("[v0] Excluindo board:", boardToDelete.nome)
+      setUi((prev) => ({ ...prev, isDeleting: true }))
       await excluirBoard(boardToDelete.id)
-
       setBoards((prevBoards) => prevBoards.filter((board) => board.id !== boardToDelete.id))
-      setShowDeleteBoardConfirm(false)
-      setBoardToDelete(null)
+      setModals((prev) => ({ ...prev, showDeleteBoardConfirm: false }))
+      setDeleteTargets((prev) => ({ ...prev, boardToDelete: null }))
 
       if (selectedBoard && selectedBoard.id === boardToDelete.id) {
         setSelectedBoard(null)
-        setViewMode("list")
+        setUi((prev) => ({ ...prev, viewMode: "list" }))
         setColumns([])
         setTasks([])
       }
-
-      console.log("[v0] Board excluído com sucesso")
     } catch (error) {
-      console.error("[v0] Erro ao excluir board:", error)
+      console.error("Erro ao excluir board:", error)
     } finally {
-      setIsDeleting(false)
+      setUi((prev) => ({ ...prev, isDeleting: false }))
     }
-  }
+  }, [deleteTargets, selectedBoard])
 
-  const excluirBoardConfirmado = async (boardId: string) => {
-    try {
-      setIsDeleting(true)
-      console.log("[v0] Excluindo board:", boardId)
-      await excluirBoard(boardId)
+  const updateFilter = useCallback((key, value) => {
+    setFilters((prev) => ({ ...prev, [key]: value }))
+  }, [])
 
-      setBoards((prevBoards) => prevBoards.filter((board) => board.id !== boardId))
-      setConfirmDelete(null)
+  const updateModal = useCallback((key, value) => {
+    setModals((prev) => ({ ...prev, [key]: value }))
+  }, [])
 
-      if (selectedBoard && selectedBoard.id === boardId) {
-        setSelectedBoard(null)
-        setViewMode("list")
-        setColumns([])
-        setTasks([])
-      }
-
-      await carregarDados()
-      console.log("[v0] Board excluído com sucesso")
-    } catch (error) {
-      console.error("[v0] Erro ao excluir board:", error)
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
-  if (loading) {
+  if (ui.loading) {
     return (
       <ProtectedRoute>
         <div className="flex h-screen bg-background">
           <Sidebar />
-          <main className="flex-1 lg:ml-64 p-8">
+          <main className="flex-1 lg:ml-64 p-4 md:p-8">
             <div className="max-w-7xl mx-auto">
               <div className="flex items-center justify-center h-64">
-                <div className="text-muted-foreground">Carregando quadros...</div>
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <div className="text-muted-foreground">Carregando quadros...</div>
+                </div>
               </div>
             </div>
           </main>
@@ -619,663 +367,162 @@ export default function KanbanPage() {
     )
   }
 
-  if (viewMode === "list") {
+  if (ui.viewMode === "list") {
     return (
       <ProtectedRoute>
-        <div className="flex h-screen bg-background">
+        <div className="flex min-h-screen bg-background">
           <Sidebar />
-          <main className="flex-1 lg:ml-64 p-8 overflow-auto">
-            <div className="max-w-7xl mx-auto space-y-8">
+          <main className="flex-1 lg:ml-64 p-4 md:p-8 overflow-auto">
+            <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold">Quadros Kanban</h1>
-                  <p className="text-muted-foreground">Gerencie seus projetos com quadros organizados</p>
+                  <h1 className="text-2xl md:text-3xl font-bold">Quadros Kanban</h1>
+                  <p className="text-muted-foreground text-sm md:text-base">
+                    Gerencie seus projetos com quadros organizados
+                  </p>
                 </div>
-                <Button onClick={() => setShowNewBoard(true)} className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
+                <Button
+                  onClick={() => updateModal("showNewBoard", true)}
+                  className="bg-black hover:bg-gray-800 text-white"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
                   Novo Quadro
                 </Button>
               </div>
 
-              <div>
+              <div className="mb-6">
                 <h2 className="text-xl font-semibold mb-4">Lista de Quadros ({boards.length})</h2>
-
                 {boards.length === 0 ? (
-                  <div className="text-center py-16">
-                    <div className="bg-card rounded-xl p-8 shadow-sm max-w-md mx-auto border">
-                      <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Kanban className="w-8 h-8 text-muted-foreground" />
+                  <Card className="p-8 text-center">
+                    <div className="space-y-4">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+                        <Plus className="w-8 h-8 text-gray-400" />
                       </div>
-                      <h3 className="text-xl font-semibold mb-2">Nenhum quadro encontrado</h3>
-                      <p className="text-muted-foreground mb-6">
-                        Crie seu primeiro quadro para começar a organizar suas tarefas
-                      </p>
-                      <Button onClick={() => setShowNewBoard(true)}>
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900">Nenhum quadro encontrado</h3>
+                        <p className="text-gray-500">Crie seu primeiro quadro para começar a organizar suas tarefas</p>
+                      </div>
+                      <Button
+                        onClick={() => updateModal("showNewBoard", true)}
+                        className="bg-black hover:bg-gray-800 text-white"
+                      >
                         <Plus className="w-4 h-4 mr-2" />
                         Criar Primeiro Quadro
                       </Button>
                     </div>
-                  </div>
+                  </Card>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {boards.map((board) => (
-                      <div
-                        key={board.id}
-                        className="bg-card rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group cursor-pointer border"
-                        onClick={() => entrarNoQuadro(board)}
-                      >
-                        <div
-                          className="h-32 p-6 flex items-center justify-center relative"
-                          style={{ backgroundColor: board.corFundo || "hsl(var(--muted))" }}
-                        >
-                          <h3 className="text-xl font-bold text-center">{board.nome}</h3>
-                          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 bg-background/80 hover:bg-background"
-                                >
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    entrarNoQuadro(board)
-                                  }}
-                                >
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  Abrir Quadro
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    confirmarExclusaoBoard(board)
-                                  }}
-                                >
-                                  <Trash2 className="w-4 h-4 mr-2" />
-                                  Excluir Quadro
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </div>
-                        <div className="p-6">
-                          <p className="text-muted-foreground text-sm mb-4">{board.descricao || "Sem descrição"}</p>
-                          <div className="flex items-center justify-between">
-                            <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4" />
-                                {new Date(board.dataCriacao).toLocaleDateString("pt-BR")}
-                              </div>
-                              {board.registradoPor && (
-                                <div className="flex items-center gap-2">
-                                  <User className="w-4 h-4" />
-                                  {board.registradoPor}
-                                </div>
+                      <Card key={board.id} className="hover:shadow-lg transition-shadow cursor-pointer group">
+                        <CardHeader className="pb-3" style={{ backgroundColor: board.corFundo }}>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1" onClick={() => entrarNoQuadro(board)}>
+                              <CardTitle className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                {board.nome}
+                              </CardTitle>
+                              {board.descricao && (
+                                <CardDescription className="text-sm text-gray-600 mt-1">
+                                  {board.descricao}
+                                </CardDescription>
                               )}
                             </div>
-                            <Button
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                entrarNoQuadro(board)
-                              }}
-                            >
-                              Abrir
-                              <ArrowRight className="w-4 h-4 ml-1" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </main>
-        </div>
-      </ProtectedRoute>
-    )
-  }
-
-  if (viewMode === "board" && selectedBoard) {
-    return (
-      <ProtectedRoute>
-        <div className="flex h-screen bg-background">
-          <Sidebar />
-          <main className="flex-1 lg:ml-64 p-8 overflow-auto">
-            <div className="max-w-7xl mx-auto space-y-8">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Button onClick={voltarParaLista} variant="outline">
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Voltar
-                  </Button>
-                  <div>
-                    <h1 className="text-3xl font-bold">{selectedBoard.nome}</h1>
-                    {selectedBoard.descricao && <p className="text-muted-foreground">{selectedBoard.descricao}</p>}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-sm font-medium">Alternar Quadro:</Label>
-                    <Select
-                      value={selectedBoard?.id || ""}
-                      onValueChange={(value) => {
-                        const board = boards.find((b) => b.id === value)
-                        if (board) {
-                          entrarNoQuadro(board)
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="w-64">
-                        <SelectValue placeholder="Selecione um quadro" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {boards.map((board) => (
-                          <SelectItem key={board.id} value={board.id}>
-                            {board.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button onClick={() => setShowNewBoard(true)} size="sm">
-                      <Plus className="w-4 h-4 mr-1" />
-                      Novo Quadro
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => confirmarExclusaoBoard(selectedBoard)}>
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Excluir Quadro
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                className="rounded-xl p-6 min-h-[600px]"
-                style={{ backgroundColor: selectedBoard.corFundo || "hsl(var(--muted))" }}
-              >
-                {selectedBoard && columns.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {columns.map((column) => (
-                      <div
-                        key={column.id}
-                        className={`bg-gray-50 rounded-xl shadow-sm border transition-all duration-200 ${
-                          dragOverColumn === column.id
-                            ? "ring-2 ring-blue-400 ring-opacity-75 shadow-lg transform scale-[1.02]"
-                            : ""
-                        }`}
-                        onDragOver={handleDragOver}
-                        onDragEnter={(e) => handleDragEnter(e, column.id)}
-                        onDragLeave={handleDragLeave}
-                        onDrop={(e) => handleDrop(e, column.id)}
-                        data-column-id={column.id}
-                      >
-                        <div
-                          className="flex items-center justify-between p-4 rounded-t-xl"
-                          style={{
-                            backgroundColor: column.cor || "#f1f5f9",
-                            color: column.corTexto || "#1f2937",
-                          }}
-                        >
-                          <h3 className="font-bold text-lg">{column.nome}</h3>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => abrirNovaTask(column.id)}
-                              className="hover:bg-white/20"
-                              style={{ color: column.corTexto || "#1f2937" }}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button
-                                  size="sm"
                                   variant="ghost"
-                                  className="hover:bg-white/20"
-                                  style={{ color: column.corTexto || "#1f2937" }}
-                                  onClick={(e) => e.stopPropagation()}
+                                  size="sm"
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
-                                  <MoreVertical className="h-4 w-4" />
+                                  <MoreVertical className="w-4 h-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent>
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.preventDefault()
-                                    abrirEdicaoColumn(column)
-                                  }}
-                                >
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Editar Coluna
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => entrarNoQuadro(board)}>
+                                  <Edit className="w-4 h-4 mr-2" />
+                                  Abrir Quadro
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.preventDefault()
-                                    confirmarExclusaoColumn(column)
-                                  }}
-                                  className="text-red-600 focus:text-red-600"
+                                  onClick={() => confirmarExclusaoBoard(board)}
+                                  className="text-red-600 hover:text-red-700"
                                 >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Excluir Coluna
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Excluir
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
-                        </div>
-
-                        <div className="p-4 space-y-3">
-                          {filteredTasks
-                            .filter((task) => task.columnId === column.id)
-                            .sort((a, b) => a.ordem - b.ordem)
-                            .map((task) => (
-                              <Card
-                                key={task.id}
-                                className={`cursor-move hover:shadow-lg transition-all duration-200 bg-white border-0 shadow-md ${
-                                  draggedTask?.id === task.id ? "opacity-50 transform rotate-2" : ""
-                                }`}
-                                draggable
-                                onDragStart={(e) => handleDragStart(e, task)}
-                                onDragEnd={handleDragEnd}
-                                onTouchStart={(e) => handleTouchStart(e, task)}
-                                onTouchMove={handleTouchMove}
-                                onTouchEnd={handleTouchEnd}
-                              >
-                                <CardContent className="p-4">
-                                  <div className="space-y-3">
-                                    <div className="flex items-start justify-between">
-                                      <h4 className="font-semibold text-gray-900 flex-1 leading-tight">
-                                        {task.titulo}
-                                      </h4>
-                                      <div className="flex items-center gap-1 ml-2">
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            abrirEdicaoTask(task)
-                                          }}
-                                          className="h-7 w-7 p-0 hover:bg-gray-100"
-                                        >
-                                          <Edit className="h-3 w-3 text-gray-600" />
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            confirmarExclusaoTask(task)
-                                          }}
-                                          className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        >
-                                          <Trash2 className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                    </div>
-
-                                    {task.descricao && (
-                                      <p className="text-sm text-gray-600 leading-relaxed">{task.descricao}</p>
-                                    )}
-
-                                    <div className="flex items-center justify-between">
-                                      <Badge
-                                        className={`${prioridadeCores[task.prioridade]} text-xs font-medium px-2 py-1`}
-                                      >
-                                        {task.prioridade}
-                                      </Badge>
-
-                                      {task.prazo && (
-                                        <div className="flex items-center text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
-                                          <Calendar className="h-3 w-3 mr-1" />
-                                          {task.prazo.toLocaleDateString()}
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    <div className="flex flex-col gap-1 text-xs text-gray-500">
-                                      <div className="flex items-center gap-1">
-                                        <Calendar className="h-3 w-3" />
-                                        Criado em {new Date(task.dataCriacao).toLocaleDateString("pt-BR")}
-                                      </div>
-                                      {task.registradoPor && (
-                                        <div className="flex items-center gap-1">
-                                          <User className="h-3 w-3" />
-                                          por {task.registradoPor}
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    {task.responsavel && (
-                                      <div className="flex items-center text-xs text-gray-600 bg-blue-50 px-2 py-1 rounded">
-                                        <User className="h-3 w-3 mr-1" />
-                                        {task.responsavel}
-                                      </div>
-                                    )}
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            ))}
-                        </div>
-                      </div>
+                        </CardHeader>
+                        <CardContent className="pt-3" onClick={() => entrarNoQuadro(board)}>
+                          <div className="flex items-center justify-between text-sm text-gray-500">
+                            <span>Clique para abrir</span>
+                            <span>→</span>
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
                   </div>
-                ) : selectedBoard ? (
-                  <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-lg">
-                    <AlertCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-600">Nenhuma coluna encontrada para este quadro.</p>
-                  </div>
-                ) : (
-                  <div className="text-center py-12 bg-white/80 backdrop-blur-sm rounded-lg">
-                    <AlertCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-600">Crie seu primeiro quadro Kanban para começar.</p>
-                  </div>
                 )}
-
-                {/* Modal para Nova Tarefa */}
-                <Dialog open={showNewTask} onOpenChange={setShowNewTask}>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Nova Tarefa</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="titulo">Título</Label>
-                        <Input
-                          id="titulo"
-                          value={newTask.titulo}
-                          onChange={(e) => setNewTask((prev) => ({ ...prev, titulo: e.target.value }))}
-                          placeholder="Título da tarefa"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="descricao">Descrição</Label>
-                        <Textarea
-                          id="descricao"
-                          value={newTask.descricao}
-                          onChange={(e) => setNewTask((prev) => ({ ...prev, descricao: e.target.value }))}
-                          placeholder="Descrição da tarefa"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="responsavel">Responsável</Label>
-                        <Select
-                          value={newTask.responsavel}
-                          onValueChange={(value) => setNewTask((prev) => ({ ...prev, responsavel: value }))}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Selecione o responsável" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {responsaveisList.map((responsavel) => (
-                              <SelectItem key={responsavel} value={responsavel}>
-                                {responsavel}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="prioridade">Prioridade</Label>
-                        <Select
-                          value={newTask.prioridade}
-                          onValueChange={(value: "baixa" | "media" | "alta") =>
-                            setNewTask((prev) => ({ ...prev, prioridade: value }))
-                          }
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Selecione a prioridade" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="baixa">Baixa</SelectItem>
-                            <SelectItem value="media">Média</SelectItem>
-                            <SelectItem value="alta">Alta</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="prazo">Prazo</Label>
-                        <Input
-                          id="prazo"
-                          type="date"
-                          value={newTask.prazo}
-                          onChange={(e) => setNewTask((prev) => ({ ...prev, prazo: e.target.value }))}
-                          className="mt-1"
-                        />
-                      </div>
-                      <Button onClick={criarTask} className="w-full">
-                        Criar Tarefa
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-
-                {/* Modal para Editar Tarefa */}
-                <Dialog open={showEditTask} onOpenChange={setShowEditTask}>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Editar Tarefa</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="editTitulo">Título</Label>
-                        <Input
-                          id="editTitulo"
-                          value={newTask.titulo}
-                          onChange={(e) => setNewTask((prev) => ({ ...prev, titulo: e.target.value }))}
-                          placeholder="Título da tarefa"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="editDescricao">Descrição</Label>
-                        <Textarea
-                          id="editDescricao"
-                          value={newTask.descricao}
-                          onChange={(e) => setNewTask((prev) => ({ ...prev, descricao: e.target.value }))}
-                          placeholder="Descrição da tarefa"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="editResponsavel">Responsável</Label>
-                        <Select
-                          value={newTask.responsavel}
-                          onValueChange={(value) => setNewTask((prev) => ({ ...prev, responsavel: value }))}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Selecione o responsável" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {responsaveisList.map((responsavel) => (
-                              <SelectItem key={responsavel} value={responsavel}>
-                                {responsavel}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="editPrioridade">Prioridade</Label>
-                        <Select
-                          value={newTask.prioridade}
-                          onValueChange={(value: "baixa" | "media" | "alta") =>
-                            setNewTask((prev) => ({ ...prev, prioridade: value }))
-                          }
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Selecione a prioridade" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="baixa">Baixa</SelectItem>
-                            <SelectItem value="media">Média</SelectItem>
-                            <SelectItem value="alta">Alta</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="editPrazo">Prazo</Label>
-                        <Input
-                          id="editPrazo"
-                          type="date"
-                          value={newTask.prazo}
-                          onChange={(e) => setNewTask((prev) => ({ ...prev, prazo: e.target.value }))}
-                          className="mt-1"
-                        />
-                      </div>
-                      <Button onClick={editarTask} className="w-full">
-                        Salvar Alterações
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-
-                {/* Modal para Editar Coluna */}
-                <Dialog open={showEditColumn} onOpenChange={setShowEditColumn}>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Editar Coluna</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="nomeColuna">Nome da Coluna</Label>
-                        <Input
-                          id="nomeColuna"
-                          value={editColumnData.nome}
-                          onChange={(e) => setEditColumnData((prev) => ({ ...prev, nome: e.target.value }))}
-                          placeholder="Nome da coluna"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label>Cor da Coluna</Label>
-                        <div className="grid grid-cols-4 gap-2 mt-2">
-                          {coresDisponiveis.map((cor) => (
-                            <button
-                              key={cor.valor}
-                              type="button"
-                              className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
-                                editColumnData.cor === cor.valor ? "border-gray-900 scale-105" : "border-gray-300"
-                              }`}
-                              style={{ backgroundColor: cor.valor, color: cor.texto }}
-                              onClick={() =>
-                                setEditColumnData((prev) => ({ ...prev, cor: cor.valor, corTexto: cor.texto }))
-                              }
-                            >
-                              {cor.nome}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <Button onClick={salvarEdicaoColumn} className="w-full">
-                        Salvar Alterações
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-
-                <Dialog open={showNewBoard} onOpenChange={setShowNewBoard}>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Criar Novo Quadro</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="nomeBoard">Nome do Quadro</Label>
-                        <Input
-                          id="nomeBoard"
-                          value={newBoard.nome}
-                          onChange={(e) => setNewBoard((prev) => ({ ...prev, nome: e.target.value }))}
-                          placeholder="Nome do quadro"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="descricaoBoard">Descrição</Label>
-                        <Textarea
-                          id="descricaoBoard"
-                          value={newBoard.descricao}
-                          onChange={(e) => setNewBoard((prev) => ({ ...prev, descricao: e.target.value }))}
-                          placeholder="Descrição do quadro (opcional)"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label>Cor de Fundo</Label>
-                        <div className="grid grid-cols-4 gap-2 mt-2">
-                          {coresDisponiveis.map((cor) => (
-                            <button
-                              key={cor.valor}
-                              type="button"
-                              className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
-                                newBoard.corFundo === cor.valor ? "border-gray-900 scale-105" : "border-gray-300"
-                              }`}
-                              style={{ backgroundColor: cor.valor, color: cor.texto }}
-                              onClick={() => setNewBoard((prev) => ({ ...prev, corFundo: cor.valor }))}
-                            >
-                              {cor.nome}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <Button onClick={criarBoard} className="w-full" disabled={creatingBoard || !newBoard.nome.trim()}>
-                        {creatingBoard ? "Criando..." : "Criar Quadro"}
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-
-                {/* Confirmation modals */}
-                <ConfirmationModal
-                  isOpen={showDeleteBoardConfirm}
-                  onClose={() => setShowDeleteBoardConfirm(false)}
-                  onConfirm={excluirBoardHandler}
-                  title="Excluir Quadro"
-                  description={`Tem certeza que deseja excluir o quadro "${boardToDelete?.nome}"? Esta ação não pode ser desfeita e todas as tarefas serão perdidas.`}
-                  confirmText="Excluir Quadro"
-                  isLoading={isDeleting}
-                />
-
-                <ConfirmationModal
-                  isOpen={showDeleteTaskConfirm}
-                  onClose={() => setShowDeleteTaskConfirm(false)}
-                  onConfirm={excluirTaskHandler}
-                  title="Excluir Tarefa"
-                  description={`Tem certeza que deseja excluir a tarefa "${taskToDelete?.titulo}"? Esta ação não pode ser desfeita.`}
-                  confirmText="Excluir Tarefa"
-                  isLoading={isDeleting}
-                />
-
-                <ConfirmationModal
-                  isOpen={showDeleteColumnConfirm}
-                  onClose={() => setShowDeleteColumnConfirm(false)}
-                  onConfirm={excluirColumnHandler}
-                  title="Excluir Coluna"
-                  description={`Tem certeza que deseja excluir a coluna "${columnToDelete?.nome}"? Todas as tarefas desta coluna serão perdidas.`}
-                  confirmText="Excluir Coluna"
-                  isLoading={isDeleting}
-                />
               </div>
+
+              {/* Modal Novo Quadro */}
+              <Dialog open={modals.showNewBoard} onOpenChange={(open) => updateModal("showNewBoard", open)}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Criar Novo Quadro</DialogTitle>
+                    <DialogDescription>Crie um novo quadro Kanban para organizar suas tarefas</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="nome">Nome do Quadro</Label>
+                      <Input
+                        id="nome"
+                        value={newBoard.nome}
+                        onChange={(e) => setNewBoard((prev) => ({ ...prev, nome: e.target.value }))}
+                        placeholder="Digite o nome do quadro"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="descricao">Descrição (opcional)</Label>
+                      <Textarea
+                        id="descricao"
+                        value={newBoard.descricao}
+                        onChange={(e) => setNewBoard((prev) => ({ ...prev, descricao: e.target.value }))}
+                        placeholder="Descreva o propósito do quadro"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="corFundo">Cor de Fundo</Label>
+                      <Input
+                        id="corFundo"
+                        type="color"
+                        value={newBoard.corFundo}
+                        onChange={(e) => setNewBoard((prev) => ({ ...prev, corFundo: e.target.value }))}
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => updateModal("showNewBoard", false)}>
+                        Cancelar
+                      </Button>
+                      <Button onClick={criarBoard} disabled={ui.creatingBoard || !newBoard.nome.trim()}>
+                        {ui.creatingBoard ? "Criando..." : "Criar Quadro"}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Modal de Confirmação de Exclusão */}
+              <ConfirmationModal
+                isOpen={modals.showDeleteBoardConfirm}
+                onClose={() => updateModal("showDeleteBoardConfirm", false)}
+                onConfirm={excluirBoardConfirmado}
+                title="Excluir Quadro"
+                description={`Tem certeza que deseja excluir o quadro "${deleteTargets.boardToDelete?.nome}"? Esta ação não pode ser desfeita.`}
+                confirmText="Excluir"
+                cancelText="Cancelar"
+                isLoading={ui.isDeleting}
+              />
             </div>
           </main>
         </div>
@@ -1283,5 +530,300 @@ export default function KanbanPage() {
     )
   }
 
-  return null
+  // View do Board
+  return (
+    <ProtectedRoute>
+      <div className="flex min-h-screen bg-background">
+        <Sidebar />
+        <main className="flex-1 lg:ml-64 p-4 md:p-8 overflow-auto">
+          <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Button variant="outline" onClick={voltarParaLista}>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Voltar
+                </Button>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">{selectedBoard?.nome}</h1>
+                  {selectedBoard?.descricao && <p className="text-gray-600">{selectedBoard.descricao}</p>}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium">Alternar Quadro:</Label>
+                  <Select
+                    value={selectedBoard?.id || ""}
+                    onValueChange={(value) => {
+                      const board = boards.find((b) => b.id === value)
+                      if (board) {
+                        entrarNoQuadro(board)
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-64">
+                      <SelectValue placeholder="Selecione um quadro" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {boards.map((board) => (
+                        <SelectItem key={board.id} value={board.id}>
+                          {board.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={() => updateModal("showBoardSettings", true)} variant="outline">
+                  <Settings className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Filtros */}
+            <Card className="p-4">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Search className="w-4 h-4 text-gray-500" />
+                  <Input
+                    placeholder="Buscar tarefas..."
+                    value={filters.searchTerm}
+                    onChange={(e) => updateFilter("searchTerm", e.target.value)}
+                    className="w-64"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-gray-500" />
+                  <Select value={filters.responsavel} onValueChange={(value) => updateFilter("responsavel", value)}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os responsáveis</SelectItem>
+                      {responsaveisList.map((responsavel) => (
+                        <SelectItem key={responsavel} value={responsavel}>
+                          {responsavel}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select value={filters.prioridade} onValueChange={(value) => updateFilter("prioridade", value)}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todas">Todas as prioridades</SelectItem>
+                      <SelectItem value="baixa">Baixa</SelectItem>
+                      <SelectItem value="media">Média</SelectItem>
+                      <SelectItem value="alta">Alta</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </Card>
+
+            {/* Colunas do Kanban */}
+            <div className="flex gap-6 overflow-x-auto pb-4">
+              {columns.map((column) => {
+                const columnTasks = tasksByColumn[column.id] || []
+
+                return (
+                  <div
+                    key={column.id}
+                    className={`min-w-80 bg-gray-50 rounded-lg p-4 ${
+                      dragState.dragOverColumn === column.id ? "ring-2 ring-blue-500 bg-blue-50" : ""
+                    }`}
+                    onDragOver={(e) => handleDragOver(e, column.id)}
+                    onDrop={(e) => handleDrop(e, column.id)}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: column.cor }} />
+                        <h3 className="font-semibold text-gray-900">{column.nome}</h3>
+                        <Badge variant="secondary" className="text-xs">
+                          {columnTasks.length}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setSelectedColumn(column.id)
+                            updateModal("showNewTask", true)
+                          }}
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="ghost">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                              <Edit className="w-4 h-4 mr-2" />
+                              Editar Coluna
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600">
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Excluir Coluna
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {columnTasks.map((task) => {
+                        const PrioridadeIcon = prioridadeIcons[task.prioridade]
+
+                        return (
+                          <Card
+                            key={task.id}
+                            className={`cursor-move hover:shadow-lg transition-all duration-200 bg-white border-0 shadow-md ${
+                              dragState.draggedTask?.id === task.id ? "opacity-50 transform rotate-2" : ""
+                            }`}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, task)}
+                            onDragEnd={handleDragEnd}
+                          >
+                            <CardContent className="p-4">
+                              <div className="space-y-3">
+                                <div className="flex items-start justify-between">
+                                  <h4 className="font-medium text-gray-900 text-sm leading-tight">{task.titulo}</h4>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                                        <MoreVertical className="w-3 h-3" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem>
+                                        <Edit className="w-4 h-4 mr-2" />
+                                        Editar
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem className="text-red-600">
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Excluir
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+
+                                {task.descricao && (
+                                  <p className="text-xs text-gray-600 line-clamp-2">{task.descricao}</p>
+                                )}
+
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Badge className={`text-xs px-2 py-1 ${prioridadeCores[task.prioridade]}`}>
+                                      <PrioridadeIcon className="w-3 h-3 mr-1" />
+                                      {task.prioridade}
+                                    </Badge>
+                                  </div>
+
+                                  {task.responsavel && (
+                                    <div className="flex items-center gap-1">
+                                      <User className="w-3 h-3 text-gray-400" />
+                                      <span className="text-xs text-gray-600">{task.responsavel}</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {task.prazo && (
+                                  <div className="flex items-center gap-1 text-xs text-gray-500">
+                                    <Calendar className="w-3 h-3" />
+                                    <span>{new Date(task.prazo).toLocaleDateString()}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Modal Nova Task */}
+            <Dialog open={modals.showNewTask} onOpenChange={(open) => updateModal("showNewTask", open)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Nova Tarefa</DialogTitle>
+                  <DialogDescription>Adicione uma nova tarefa ao quadro</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="titulo">Título</Label>
+                    <Input
+                      id="titulo"
+                      value={newTask.titulo}
+                      onChange={(e) => setNewTask((prev) => ({ ...prev, titulo: e.target.value }))}
+                      placeholder="Digite o título da tarefa"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="descricao">Descrição</Label>
+                    <Textarea
+                      id="descricao"
+                      value={newTask.descricao}
+                      onChange={(e) => setNewTask((prev) => ({ ...prev, descricao: e.target.value }))}
+                      placeholder="Descreva a tarefa"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="responsavel">Responsável</Label>
+                    <Input
+                      id="responsavel"
+                      value={newTask.responsavel}
+                      onChange={(e) => setNewTask((prev) => ({ ...prev, responsavel: e.target.value }))}
+                      placeholder="Nome do responsável"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="prioridade">Prioridade</Label>
+                    <Select
+                      value={newTask.prioridade}
+                      onValueChange={(value) => setNewTask((prev) => ({ ...prev, prioridade: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="baixa">Baixa</SelectItem>
+                        <SelectItem value="media">Média</SelectItem>
+                        <SelectItem value="alta">Alta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="prazo">Prazo</Label>
+                    <Input
+                      id="prazo"
+                      type="date"
+                      value={newTask.prazo}
+                      onChange={(e) => setNewTask((prev) => ({ ...prev, prazo: e.target.value }))}
+                      placeholder="Selecione a data de prazo"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => updateModal("showNewTask", false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={criarTask} disabled={!newTask.titulo.trim()}>
+                      Criar Tarefa
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </main>
+      </div>
+    </ProtectedRoute>
+  )
 }
