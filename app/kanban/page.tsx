@@ -215,7 +215,14 @@ export default function KanbanPage() {
 
     try {
       setUi((prev) => ({ ...prev, creatingBoard: true }))
-      await adicionarBoard(newBoard.nome, newBoard.descricao, newBoard.corFundo)
+      const boardData = {
+        nome: newBoard.nome,
+        descricao: newBoard.descricao,
+        corFundo: newBoard.corFundo,
+        dataCriacao: new Date(), // Passando Date object diretamente
+        excluido: false,
+      }
+      await adicionarBoard(boardData)
       setNewBoard({ nome: "", descricao: "", corFundo: "#f8fafc" })
       setModals((prev) => ({ ...prev, showNewBoard: false }))
       await carregarDados()
@@ -370,7 +377,7 @@ export default function KanbanPage() {
   if (ui.viewMode === "list") {
     return (
       <ProtectedRoute>
-        <div className="flex min-h-screen bg-background">
+        <div className="flex h-screen bg-background">
           <Sidebar />
           <main className="flex-1 lg:ml-64 p-4 md:p-8 overflow-auto">
             <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
@@ -533,7 +540,7 @@ export default function KanbanPage() {
   // View do Board
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen bg-background">
+      <div className="flex h-screen bg-background">
         <Sidebar />
         <main className="flex-1 lg:ml-64 p-4 md:p-8 overflow-auto">
           <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
