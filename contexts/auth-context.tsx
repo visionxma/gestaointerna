@@ -31,12 +31,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isHydrated, setIsHydrated] = useState(false)
 
   useEffect(() => {
-    setIsHydrated(true)
+    // Usar requestAnimationFrame para garantir que a hidratação aconteça após o primeiro render
+    const frame = requestAnimationFrame(() => {
+      setIsHydrated(true)
+    })
+    return () => cancelAnimationFrame(frame)
   }, [])
 
-  // Memoizar o callback para evitar re-renders desnecessários
   const handleAuthStateChange = useCallback((user: User | null) => {
-    console.log("Auth state changed:", user ? "logged in" : "logged out")
+    console.log("[v0] Auth state changed:", user ? "logged in" : "logged out")
     setUser(user)
     setLoading(false)
   }, [])
@@ -50,15 +53,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const initAuth = () => {
       try {
+        console.log("[v0] Inicializando auth observer")
         const unsubscribe = observarEstadoAuth(handleAuthStateChange)
         return unsubscribe
       } catch (error) {
-        console.error("Erro ao inicializar auth:", error)
+        console.error("[v0] Erro ao inicializar auth:", error)
         if (retryCount < maxRetries) {
           retryCount++
+          console.log(`[v0] Tentativa ${retryCount}/${maxRetries} em ${1000 * retryCount}ms`)
           timeoutId = setTimeout(initAuth, 1000 * retryCount)
         } else {
-          // Se falhar após tentativas, definir como não carregando
+          console.error("[v0] Máximo de tentativas atingido, definindo loading como false")
           setLoading(false)
         }
         return () => {}

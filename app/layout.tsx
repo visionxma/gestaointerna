@@ -16,7 +16,6 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "VisionX",
   },
-  manifest: "/manifest.json",
   icons: {
     icon: [
       { url: "/images/visionx-logo.png", sizes: "192x192", type: "image/png" },
@@ -35,7 +34,6 @@ export default function RootLayout({
     <html lang="pt-BR">
       <head>
         <link rel="icon" type="image/png" href="/images/visionx-logo.png" />
-        <link rel="manifest" href="/manifest.json" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -48,46 +46,39 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              // iOS Safari compatibility fixes
               if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
                 window.addEventListener('load', function() {
                   // Verificar se o SW existe antes de tentar registrar
                   fetch('/sw.js', { method: 'HEAD' })
-                    .then(() => {
-                      return navigator.serviceWorker.register('/sw.js', {
-                        scope: '/'
-                      });
+                    .then(response => {
+                      if (response.ok) {
+                        return navigator.serviceWorker.register('/sw.js', {
+                          scope: '/'
+                        });
+                      } else {
+                        throw new Error('Service worker não encontrado');
+                      }
                     })
                     .then(function(registration) {
                       console.log('[App] SW registered successfully:', registration.scope);
-                      
-                      // Handle updates
-                      registration.addEventListener('updatefound', () => {
-                        console.log('[App] SW update found');
-                      });
                     })
                     .catch(function(error) {
-                      console.log('[App] SW registration failed or SW not found:', error);
-                      // Continue without SW - não é crítico
+                      console.log('[App] SW não disponível, continuando sem PWA features');
                     });
                 });
               }
 
-              // iOS Safari specific fixes
-              if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-                // Prevent zoom on input focus
-                document.addEventListener('touchstart', function() {}, true);
-                
-                // Fix viewport issues
-                const viewport = document.querySelector('meta[name=viewport]');
-                if (viewport) {
-                  viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover');
-                }
-              }
-
               window.addEventListener('error', function(e) {
-                if (e.message && e.message.includes('Hydration')) {
-                  console.warn('[App] Hydration error detected, but continuing:', e.message);
+                if (e.message && (e.message.includes('Hydration') || e.message.includes('Minified React error'))) {
+                  console.warn('[App] React hydration/render error suppressed:', e.message);
+                  e.preventDefault();
+                  return false;
+                }
+              });
+
+              window.addEventListener('unhandledrejection', function(e) {
+                if (e.reason && e.reason.message && e.reason.message.includes('Minified React error')) {
+                  console.warn('[App] React error suppressed:', e.reason.message);
                   e.preventDefault();
                 }
               });
@@ -96,39 +87,19 @@ export default function RootLayout({
         />
 
         <style>{`
-/* Reverted to system default fonts */
+/* Simplificar CSS para evitar problemas de hidratação */
 html {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  /* Otimizações para mobile */
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 
-/* iOS Safari specific fixes */
 body {
-  /* Fix iOS Safari bounce */
-  position: fixed;
-  overflow: hidden;
-  width: 100%;
-  height: 100%;
-}
-
-#__next, [data-reactroot] {
-  height: 100%;
-  overflow: auto;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
   -webkit-overflow-scrolling: touch;
-}
-
-/* Melhorar performance de scroll em mobile */
-* {
-  -webkit-overflow-scrolling: touch;
-}
-
-/* iOS Safari input fixes */
-input, textarea, select {
-  -webkit-appearance: none;
-  border-radius: 0;
 }
 
 /* Reduzir animações em dispositivos com pouca bateria */
